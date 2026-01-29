@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.2] - 2026-01-29
+
+### Fixed
+
+- 🐞 **Tray Icon Removed** - Disabled menu bar tray icon that caused black boxes on macOS.
+- 🏗 **CI/CD Improvements** - Removed custom icon configurations that were breaking Windows and Linux builds.
+
 ## [0.0.1] - 2026-01-29
 
 ### Added
