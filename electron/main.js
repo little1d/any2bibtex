@@ -261,7 +261,7 @@ ipcMain.handle('hide-window', () => {
 app.whenReady().then(async () => {
   await startPythonBackend();
   createWindow();
-  createTray();
+  // createTray(); // Disabled per user request
   registerGlobalShortcut();
 });
 
