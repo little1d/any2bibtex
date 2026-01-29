@@ -50,9 +50,9 @@ def build_backend():
     result = subprocess.run(cmd, cwd=Path(__file__).parent)
     
     if result.returncode == 0:
-        print(f"\n✅ Build successful! Output: resources/backend/{output_name}")
+        print(f"\n[OK] Build successful! Output: resources/backend/{output_name}")
     else:
-        print(f"\n❌ Build failed with exit code {result.returncode}")
+        print(f"\n[ERROR] Build failed with exit code {result.returncode}")
         sys.exit(result.returncode)
 
 if __name__ == "__main__":
