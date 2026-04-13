@@ -20,4 +20,6 @@ backend/*.spec
 .DS_Store
 Thumbs.db
 
+.wiki/
 
+AGENTS.md
