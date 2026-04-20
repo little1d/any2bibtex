@@ -7,6 +7,12 @@ import re
 import requests
 from typing import Optional, Tuple
 
+from semantic_scholar import (
+    SemanticScholarError,
+    SemanticScholarRateLimitError,
+    search_title_candidates,
+)
+
 # === 输入类型识别 ===
 
 DOI_PATTERN = re.compile(r'^10\.\d{4,}/[^\s]+$')
@@ -139,53 +145,39 @@ def resolve_arxiv(arxiv_id: str) -> Optional[str]:
 
 def resolve_title(title: str) -> Optional[str]:
     """
-    通过标题在 Semantic Scholar 搜索，找到后获取 DOI 再解析
+    通过标题在 Semantic Scholar 搜索候选论文，优先使用 DOI。
     """
-    url = "https://api.semanticscholar.org/graph/v1/paper/search"
-    params = {
-        'query': title,
-        'limit': 1,
-        'fields': 'externalIds,title,authors,year'
-    }
-    
     try:
-        response = requests.get(url, params=params, timeout=10)
-        if response.status_code != 200:
+        candidates = search_title_candidates(title, limit=5)
+        if not candidates:
             return None
-        
-        data = response.json()
-        if not data.get('data'):
-            return None
-        
-        paper = data['data'][0]
-        external_ids = paper.get('externalIds', {})
-        
-        # 优先使用 DOI
-        if external_ids.get('DOI'):
-            return resolve_doi(external_ids['DOI'])
-        
-        # 使用 arXiv ID
-        if external_ids.get('ArXiv'):
-            return resolve_arxiv(external_ids['ArXiv'])
-        
-        # 都没有，手动构造
-        authors = paper.get('authors', [])
-        author_names = [a.get('name', '') for a in authors]
+
+        paper = candidates[0]
+
+        if paper.doi:
+            return resolve_doi(paper.doi)
+
+        if paper.arxiv_id:
+            return resolve_arxiv(paper.arxiv_id)
+
+        author_names = paper.authors
         author_str = ' and '.join(author_names) if author_names else "Unknown"
-        year = paper.get('year', 'Unknown')
-        paper_title = paper.get('title', title)
-        
+        year = paper.year or 'Unknown'
+        paper_title = paper.title or title
+
         first_author = author_names[0].split()[-1] if author_names else "unknown"
         cite_key = f"{first_author.lower()}{year}"
-        
+
         bibtex = f"""@article{{{cite_key},
   title = {{{paper_title}}},
   author = {{{author_str}}},
   year = {{{year}}}
 }}"""
         return bibtex
-        
-    except requests.RequestException:
+
+    except SemanticScholarRateLimitError:
+        raise
+    except SemanticScholarError:
         return None
 
 
