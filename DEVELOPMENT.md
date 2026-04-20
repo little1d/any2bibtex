@@ -21,6 +21,16 @@ conda activate any2bibtex
 pip install -r backend/requirements.txt
 ```
 
+Optional for more stable title search:
+
+```bash
+export SEMANTIC_SCHOLAR_API_KEY=your_key_here
+```
+
+Without an API key, Semantic Scholar title search still works on shared
+unauthenticated limits, but it may return `429 Too Many Requests` during busy
+periods.
+
 ### 2. Run Development Mode
 
 **Terminal 1 - Backend:**

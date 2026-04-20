@@ -12,7 +12,7 @@
         "
         type="text"
         class="search-input"
-        placeholder="Enter DOI or arXiv ID..."
+        placeholder="Enter DOI, arXiv ID, or paper title..."
         @keyup.enter="$emit('search')"
         @keydown.esc="handleEsc"
         autofocus
