@@ -9,8 +9,9 @@ from typing import Optional, Tuple
 
 from semantic_scholar import (
     SemanticScholarError,
+    SemanticScholarLowConfidenceError,
     SemanticScholarRateLimitError,
-    search_title_candidates,
+    choose_best_title_candidate,
 )
 
 # === 输入类型识别 ===
@@ -148,11 +149,7 @@ def resolve_title(title: str) -> Optional[str]:
     通过标题在 Semantic Scholar 搜索候选论文，优先使用 DOI。
     """
     try:
-        candidates = search_title_candidates(title, limit=5)
-        if not candidates:
-            return None
-
-        paper = candidates[0]
+        paper = choose_best_title_candidate(title, limit=5)
 
         if paper.doi:
             return resolve_doi(paper.doi)
@@ -177,6 +174,8 @@ def resolve_title(title: str) -> Optional[str]:
 
     except SemanticScholarRateLimitError:
         raise
+    except SemanticScholarLowConfidenceError:
+        raise
     except SemanticScholarError:
         return None
 
@@ -200,8 +199,23 @@ def resolve(query: str) -> dict:
     if not resolver:
         return {"success": False, "type": input_type, "bibtex": None, "error": "Unknown input type"}
     
-    bibtex = resolver(normalized)
-    
+    try:
+        bibtex = resolver(normalized)
+    except SemanticScholarLowConfidenceError as exc:
+        return {
+            "success": False,
+            "type": input_type,
+            "bibtex": None,
+            "error": str(exc),
+        }
+    except SemanticScholarRateLimitError as exc:
+        return {
+            "success": False,
+            "type": input_type,
+            "bibtex": None,
+            "error": str(exc),
+        }
+
     if bibtex:
         return {"success": True, "type": input_type, "bibtex": bibtex, "error": None}
     else:

@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Any
 
 import requests
@@ -28,6 +29,10 @@ class SemanticScholarRateLimitError(SemanticScholarError):
     """Raised when Semantic Scholar throttles the request."""
 
 
+class SemanticScholarLowConfidenceError(SemanticScholarError):
+    """Raised when title search does not produce a trustworthy match."""
+
+
 @dataclass
 class SemanticScholarCandidate:
     title: str
@@ -35,6 +40,7 @@ class SemanticScholarCandidate:
     doi: str | None
     arxiv_id: str | None
     authors: list[str]
+    title_similarity: float
     score: float
 
 
@@ -48,6 +54,25 @@ def search_title_candidates(title: str, limit: int = 5) -> list[SemanticScholarC
     items = payload.get("data") or []
     candidates = [_candidate_from_item(title, item) for item in items]
     return sorted(candidates, key=lambda candidate: candidate.score, reverse=True)
+
+
+def choose_best_title_candidate(title: str, limit: int = 5) -> SemanticScholarCandidate:
+    candidates = search_title_candidates(title, limit=limit)
+    if not candidates:
+        raise SemanticScholarLowConfidenceError("Semantic Scholar returned no title matches.")
+
+    best = candidates[0]
+    if best.title_similarity < 0.72:
+        raise SemanticScholarLowConfidenceError(
+            "Semantic Scholar did not return a confident title match."
+        )
+
+    if best.title_similarity < 0.9 and not (best.doi or best.arxiv_id):
+        raise SemanticScholarLowConfidenceError(
+            "Semantic Scholar only returned low-confidence matches without DOI/arXiv metadata."
+        )
+
+    return best
 
 
 def _search(title: str, limit: int) -> dict[str, Any]:
@@ -124,33 +149,51 @@ def _candidate_from_item(query: str, item: dict[str, Any]) -> SemanticScholarCan
     doi = _clean_identifier(external_ids.get("DOI"))
     arxiv_id = _clean_identifier(external_ids.get("ArXiv"))
 
-    score = _score_candidate(query=query, title=title, doi=doi, authors=authors)
+    title_similarity = _title_similarity(query, title)
+    score = _score_candidate(
+        query=query,
+        title=title,
+        doi=doi,
+        arxiv_id=arxiv_id,
+        authors=authors,
+        title_similarity=title_similarity,
+    )
     return SemanticScholarCandidate(
         title=title,
         year=year,
         doi=doi,
         arxiv_id=arxiv_id,
         authors=authors,
+        title_similarity=title_similarity,
         score=score,
     )
 
 
-def _score_candidate(query: str, title: str, doi: str | None, authors: list[str]) -> float:
+def _score_candidate(
+    query: str,
+    title: str,
+    doi: str | None,
+    arxiv_id: str | None,
+    authors: list[str],
+    title_similarity: float,
+) -> float:
     query_norm = _normalize_text(query)
     title_norm = _normalize_text(title)
 
-    score = 0.0
+    score = title_similarity * 100.0
     if title_norm == query_norm:
-        score += 100.0
+        score += 35.0
     elif query_norm and title_norm:
         query_words = set(query_norm.split())
         title_words = set(title_norm.split())
         overlap = len(query_words & title_words)
         if query_words:
-            score += 60.0 * (overlap / len(query_words))
+            score += 20.0 * (overlap / len(query_words))
 
     if doi:
         score += 25.0
+    if arxiv_id:
+        score += 18.0
     if authors:
         score += min(len(authors), 4)
 
@@ -164,6 +207,10 @@ def _score_candidate(query: str, title: str, doi: str | None, authors: list[str]
 def _normalize_text(value: str) -> str:
     normalized = "".join(char.lower() if char.isalnum() else " " for char in value)
     return " ".join(normalized.split())
+
+
+def _title_similarity(query: str, title: str) -> float:
+    return SequenceMatcher(None, _normalize_text(query), _normalize_text(title)).ratio()
 
 
 def _clean_identifier(value: Any) -> str | None:
