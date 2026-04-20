@@ -31,7 +31,14 @@ jobs:
           node-version: 20
           cache: "npm"
 
-      - run: npm ci
+      # Work around npm optional dependency resolution issues on Windows runners.
+      - name: Clean npm state and reinstall
+        run: |
+          Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+          Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+          npm install
+        shell: pwsh
+
       - run: npm run build
 
       - name: Build Windows
