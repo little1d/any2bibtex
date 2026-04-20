@@ -134,3 +134,39 @@ curl 'http://127.0.0.1:8765/resolve?q=2205.15019'
 curl 'http://127.0.0.1:8765/resolve?q=Deep%20Residual%20Learning%20for%20Image%20Recognition'
 curl 'http://127.0.0.1:8765/resolve?q=Attention%20Is%20All%20You%20Need'
 ```
+
+## Release Process
+
+This repository publishes GitHub Releases from version tags that match `v*`.
+
+Before creating a release:
+
+1. Ensure `package.json` version and `CHANGELOG.md` are up to date.
+2. Run the local smoke tests above.
+3. If you are packaging locally, verify at least one installer build succeeds.
+
+Create and push a release tag:
+
+```bash
+git pull origin main
+git tag v0.0.3
+git push origin main
+git push origin v0.0.3
+```
+
+After pushing the tag:
+
+1. Open the GitHub `Actions` page.
+2. Wait for `Build any2bibtex` to finish on Windows, macOS, and Linux.
+3. Open the GitHub `Releases` page and verify the new release artifacts were attached successfully.
+
+Notes:
+
+- The release body is generated from `CHANGELOG.md`.
+- If the tag already exists locally, delete and recreate it only if you intentionally want to retarget the release:
+
+```bash
+git tag -d v0.0.3
+git push origin :refs/tags/v0.0.3
+git tag v0.0.3
+```

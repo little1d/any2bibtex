@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2026-04-20
+
+### Added
+
+- **Paper Title Search** - Added Semantic Scholar-based title lookup alongside DOI and arXiv resolution.
+- **API Key Support** - Added local Semantic Scholar API key storage and backend injection for more reliable title search.
+- **In-App API Key Setup** - Added an in-app configuration panel with a direct link to the Semantic Scholar API key application form.
+- **Demo GIF** - Replaced the old embedded demo video with a repository-friendly GIF preview.
+
+### Changed
+
+- **Input Detection** - Updated the app and documentation to present DOI, arXiv ID, and paper title as first-class input types.
+- **Loading and Error Copy** - Improved title-search loading states and rate-limit guidance, especially when no API key is configured.
+- **Window and Layout Polish** - Refined the spotlight window sizing, result empty-state layout, and API key setup presentation.
+- **Development Docs** - Updated local development steps, smoke tests, and packaging notes for the current Electron + backend workflow.
+
+### Fixed
+
+- **Title Match Ranking** - Tightened title-match selection to avoid weak Semantic Scholar matches.
+- **API Key UX Regression** - Reworked the API key flow from an overlay modal into an inline settings panel to avoid clipped content in the fixed-size window.
+- **Icon Packaging** - Restored packaged app icon handling for the Electron build output.
+
 ## [0.0.2] - 2026-01-29
 
 ### Fixed
