@@ -1,7 +1,11 @@
 {
   "name": "any2bibtex",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A desktop tool to convert DOI, arXiv ID, or paper title to BibTeX",
+  "author": {
+    "name": "little1d",
+    "email": "yzachary1551@gmail.com"
+  },
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vue\" \"npm run dev:electron\"",
@@ -29,7 +33,8 @@
     "appId": "com.any2bibtex.app",
     "productName": "any2bibtex",
     "directories": {
-      "output": "dist-electron"
+      "output": "dist-electron",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -40,10 +45,22 @@
         "from": "resources/backend",
         "to": "backend",
         "filter": ["**/*"]
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "build/tray-icon.png",
+        "to": "tray-icon.png"
       }
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "dmg": {
+      "icon": "build/icon.png"
     },
     "win": {
       "target": "nsis"

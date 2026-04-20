@@ -12,6 +12,44 @@ let tray;
 const isDev = !app.isPackaged;
 const BACKEND_PORT = 8765;
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
+const SETTINGS_FILE = 'settings.json';
+
+function getAppIconPath() {
+  if (isDev) {
+    return path.join(__dirname, "../build/icon.png");
+  }
+  return path.join(process.resourcesPath, "icon.png");
+}
+
+function getSettingsPath() {
+  return path.join(app.getPath('userData'), SETTINGS_FILE);
+}
+
+function loadSettings() {
+  try {
+    const file = fs.readFileSync(getSettingsPath(), 'utf8');
+    const parsed = JSON.parse(file);
+    return typeof parsed === 'object' && parsed ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveSettings(patch) {
+  const current = loadSettings();
+  const next = { ...current, ...patch };
+  fs.mkdirSync(path.dirname(getSettingsPath()), { recursive: true });
+  fs.writeFileSync(getSettingsPath(), JSON.stringify(next, null, 2), 'utf8');
+  return next;
+}
+
+function getSemanticScholarApiKey() {
+  const settings = loadSettings();
+  const value = typeof settings.semanticScholarApiKey === 'string'
+    ? settings.semanticScholarApiKey.trim()
+    : '';
+  return value;
+}
 
 /**
  * Get the path to the Python backend executable
@@ -100,12 +138,14 @@ async function startPythonBackend() {
   }
   
   console.log('Starting backend from:', backendPath);
+  const semanticScholarApiKey = getSemanticScholarApiKey();
   
   pythonProcess = spawn(backendPath, [], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: {
       ...process.env,
-      PORT: BACKEND_PORT.toString()
+      PORT: BACKEND_PORT.toString(),
+      SEMANTIC_SCHOLAR_API_KEY: semanticScholarApiKey
     }
   });
   
@@ -134,10 +174,34 @@ async function startPythonBackend() {
   }
 }
 
+async function stopPythonBackend() {
+  if (!pythonProcess) {
+    return;
+  }
+
+  const processToStop = pythonProcess;
+  pythonProcess = null;
+
+  await new Promise((resolve) => {
+    processToStop.once('exit', () => resolve(true));
+    processToStop.kill();
+    setTimeout(() => resolve(true), 2000);
+  });
+}
+
+async function restartPythonBackend() {
+  if (isDev) {
+    return;
+  }
+  await stopPythonBackend();
+  await startPythonBackend();
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 700,
     height: 500,
+    icon: getAppIconPath(),
     frame: false,
     transparent: true,
     resizable: false,
@@ -161,15 +225,24 @@ function createWindow() {
     mainWindow.loadFile(htmlPath);
   }
 
+  // Auto-hide when window loses focus (e.g., clicking outside)
   mainWindow.on('blur', () => {
-    // Auto-hide when clicking outside (production only)
-    if (!isDev) {
+    console.log('[DEBUG] Window lost focus (blur) - Hiding');
+    mainWindow.hide();
+  });
+
+  // Robust Escape handling via main process (catches Esc even if focused on child elements)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'Escape' && input.type === 'keyDown') {
+      console.log('[DEBUG] Escape pressed - Hiding');
       mainWindow.hide();
+      event.preventDefault();
     }
   });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    mainWindow.focus();
   });
   
   // Show window when clicked on dock icon (macOS)
@@ -255,6 +328,23 @@ ipcMain.handle('copy-to-clipboard', (event, text) => {
 ipcMain.handle('hide-window', () => {
   mainWindow.hide();
   return true;
+});
+
+ipcMain.handle('get-semantic-scholar-config', () => {
+  return {
+    hasApiKey: Boolean(getSemanticScholarApiKey())
+  };
+});
+
+ipcMain.handle('save-semantic-scholar-config', async (event, apiKey) => {
+  const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+  saveSettings({
+    semanticScholarApiKey: normalizedApiKey
+  });
+  await restartPythonBackend();
+  return {
+    hasApiKey: Boolean(normalizedApiKey)
+  };
 });
 
 // App lifecycle

@@ -3,12 +3,23 @@
     <div v-if="loading" class="result-area">
       <div class="loading">
         <div class="loading-spinner"></div>
-        <span>Resolving...</span>
+        <div class="loading-copy">
+          <span>{{ loadingMessage }}</span>
+          <span v-if="loadingDetail" class="loading-detail">{{ loadingDetail }}</span>
+        </div>
       </div>
     </div>
 
     <div v-else-if="error" class="result-area">
       <div class="error-msg">{{ error }}</div>
+      <div v-if="errorHint" class="error-hint">{{ errorHint }}</div>
+      <div
+        v-if="showApiKeyAction"
+        class="action-link"
+        @click="emit('configureApiKey')"
+      >
+        {{ apiKeyConfigured ? "Update Semantic Scholar API key" : "Set Semantic Scholar API key" }}
+      </div>
     </div>
 
     <div v-else-if="bibtex" class="result-area">
@@ -17,6 +28,18 @@
 
     <div v-else class="result-area empty-state">
       <div class="hint">Press Enter to resolve · Press Esc to hide</div>
+      <div
+        class="subhint"
+        v-if="!apiKeyConfigured"
+      >
+        Title search works without an API key, but uses shared Semantic Scholar rate limits.
+      </div>
+      <div
+        class="action-link"
+        @click="emit('configureApiKey')"
+      >
+        {{ apiKeyConfigured ? "Semantic Scholar API key configured" : "Set Semantic Scholar API key" }}
+      </div>
     </div>
 
     <!-- Status Bar -->
@@ -33,21 +56,31 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+
 const props = defineProps<{
   loading: boolean;
+  loadingMessage: string;
+  loadingDetail: string;
   error: string;
+  errorHint: string;
   bibtex: string;
   inputType: string;
   copied: boolean;
+  apiKeyConfigured: boolean;
+  activeInputType: string;
 }>();
 
 const emit = defineEmits<{
   (e: "copy"): void;
+  (e: "configureApiKey"): void;
 }>();
 
 function handleCopy() {
   emit("copy");
 }
+
+const showApiKeyAction = computed(() => props.activeInputType === "title");
 </script>
 
 <style scoped>
@@ -149,6 +182,7 @@ function handleCopy() {
   justify-content: center;
   padding: 24px;
   color: rgba(147, 197, 253, 0.7);
+  gap: 12px;
 }
 
 .loading-spinner {
@@ -158,7 +192,19 @@ function handleCopy() {
   border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-right: 12px;
+}
+
+.loading-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loading-detail {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(147, 197, 253, 0.5);
+  max-width: 420px;
 }
 
 @keyframes spin {
@@ -169,8 +215,16 @@ function handleCopy() {
 
 .error-msg {
   color: #fca5a5;
-  padding: 16px;
+  padding: 16px 16px 8px;
   text-align: center;
+}
+
+.error-hint {
+  color: rgba(252, 165, 165, 0.78);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  padding: 0 20px 16px;
 }
 
 .hint {
@@ -178,6 +232,27 @@ function handleCopy() {
   font-size: 13px;
   text-align: center;
   padding: 10px;
+}
+
+.subhint {
+  color: rgba(147, 197, 253, 0.42);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  padding: 0 18px 10px;
+}
+
+.action-link {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  padding-top: 6px;
+}
+
+.action-link:hover {
+  text-decoration: underline;
 }
 
 /* Scrollbar */
