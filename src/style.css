@@ -8,6 +8,7 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: transparent;
@@ -15,15 +16,25 @@ body {
   margin: 0;
 }
 
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
 /* 主容器样式 */
 .spotlight-container {
   width: 100%;
-  max-width: 650px;
-  /* Solid background, no transparency artifacts */
-  background: #0f172a; 
-  border-radius: 12px;
-  /* Clean shadow */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 40px rgba(0, 0, 0, 0.4);
+  max-width: 664px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
+  border-radius: 16px;
+  border: 1px solid rgba(96, 165, 250, 0.12);
+  box-shadow:
+    0 12px 28px rgba(2, 6, 23, 0.18),
+    0 2px 8px rgba(15, 23, 42, 0.14);
   overflow: hidden;
   display: flex;
   flex-direction: column;

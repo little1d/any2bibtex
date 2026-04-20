@@ -21,5 +21,7 @@ backend/*.spec
 Thumbs.db
 
 .wiki/
+playground/
+third_parties/
 
 AGENTS.md

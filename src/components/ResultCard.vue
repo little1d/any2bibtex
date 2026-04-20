@@ -97,7 +97,16 @@ const showApiKeyAction = computed(() => props.activeInputType === "title");
 }
 
 .empty-state {
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 180px;
+  padding: 28px 28px 24px;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 52%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.22), rgba(15, 23, 42, 0.1));
 }
 
 .bibtex-code {
@@ -215,8 +224,10 @@ const showApiKeyAction = computed(() => props.activeInputType === "title");
 
 .error-msg {
   color: #fca5a5;
-  padding: 16px 16px 8px;
+  padding: 8px 16px 6px;
   text-align: center;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .error-hint {
@@ -224,35 +235,40 @@ const showApiKeyAction = computed(() => props.activeInputType === "title");
   font-size: 12px;
   line-height: 1.5;
   text-align: center;
-  padding: 0 20px 16px;
+  padding: 0 20px 10px;
 }
 
 .hint {
-  color: rgba(147, 197, 253, 0.5);
-  font-size: 13px;
+  color: rgba(191, 219, 254, 0.72);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
   text-align: center;
-  padding: 10px;
+  max-width: 460px;
 }
 
 .subhint {
-  color: rgba(147, 197, 253, 0.42);
+  color: rgba(147, 197, 253, 0.52);
   font-size: 12px;
   line-height: 1.45;
   text-align: center;
-  padding: 0 18px 10px;
+  max-width: 500px;
 }
 
 .action-link {
-  color: #93c5fd;
+  color: #bfdbfe;
   font-size: 12px;
   font-weight: 600;
   text-align: center;
   cursor: pointer;
-  padding-top: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.18);
 }
 
 .action-link:hover {
-  text-decoration: underline;
+  background: rgba(37, 99, 235, 0.2);
 }
 
 /* Scrollbar */

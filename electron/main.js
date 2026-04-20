@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, clipboard, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, clipboard, Tray, Menu, nativeImage, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -199,8 +199,8 @@ async function restartPythonBackend() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 700,
-    height: 500,
+    width: 684,
+    height: 640,
     icon: getAppIconPath(),
     frame: false,
     transparent: true,
@@ -345,6 +345,14 @@ ipcMain.handle('save-semantic-scholar-config', async (event, apiKey) => {
   return {
     hasApiKey: Boolean(normalizedApiKey)
   };
+});
+
+ipcMain.handle('open-external-url', async (event, url) => {
+  if (typeof url !== 'string' || !url.trim()) {
+    return false;
+  }
+  await shell.openExternal(url);
+  return true;
 });
 
 // App lifecycle

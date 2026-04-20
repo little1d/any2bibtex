@@ -27,6 +27,8 @@ Optional for more stable title search:
 export SEMANTIC_SCHOLAR_API_KEY=your_key_here
 ```
 
+Apply here: <https://www.semanticscholar.org/product/api#api-key-form>
+
 Without an API key, Semantic Scholar title search still works on shared
 unauthenticated limits, but it may return `429 Too Many Requests` during busy
 periods.
@@ -40,12 +42,17 @@ conda activate any2bibtex
 cd backend && uvicorn main:app --port 8765 --reload
 ```
 
-**Terminal 2 - Frontend:**
+**Terminal 2 - Frontend + Electron shell:**
 
 ```bash
-npm run dev:vue
-# Open http://localhost:5173
+npm run dev
 ```
+
+Note:
+
+- In development, Electron expects the backend to already be running on `127.0.0.1:8765`.
+- Saving a Semantic Scholar API key in the packaged app restarts the bundled backend automatically.
+- In development mode, if you want the backend to use an API key, you still need to export `SEMANTIC_SCHOLAR_API_KEY` in the backend terminal before starting `uvicorn`.
 
 ## Building for Production
 
@@ -90,19 +97,21 @@ chmod +x dist-electron/any2bibtex-*.AppImage
 
 ```
 any2bibtex/
-├── backend/           # Python FastAPI
+├── backend/           # Python FastAPI backend
 │   ├── main.py        # API entry point
-│   ├── resolvers.py   # DOI/arXiv resolution
+│   ├── resolvers.py   # DOI/arXiv/title resolution
+│   ├── semantic_scholar.py
 │   ├── build.py       # PyInstaller script
 │   └── requirements.txt
-├── electron/          # Electron main process
+├── electron/          # Electron main + preload bridge
 │   ├── main.js
 │   └── preload.js
-├── src/               # Vue 3 frontend
+├── src/               # Vue 3 renderer
 │   ├── App.vue
 │   ├── main.ts
 │   └── style.css
-├── resources/         # Built backend binary (gitignored)
+├── build/             # Icons and build resources
+├── resources/         # Demo gif and built backend output
 └── dist-electron/     # Built app (gitignored)
 ```
 
@@ -114,3 +123,14 @@ any2bibtex/
 | `Alt+Space` (Windows/Linux) | Toggle window |
 | `Enter`                     | Search        |
 | `Escape`                    | Hide window   |
+
+## Manual Checks
+
+Recommended smoke tests before packaging:
+
+```bash
+curl 'http://127.0.0.1:8765/resolve?q=10.1038/nphys1170'
+curl 'http://127.0.0.1:8765/resolve?q=2205.15019'
+curl 'http://127.0.0.1:8765/resolve?q=Deep%20Residual%20Learning%20for%20Image%20Recognition'
+curl 'http://127.0.0.1:8765/resolve?q=Attention%20Is%20All%20You%20Need'
+```

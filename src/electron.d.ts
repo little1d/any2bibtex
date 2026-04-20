@@ -11,6 +11,7 @@ declare global {
       saveSemanticScholarConfig: (apiKey: string) => Promise<{
         hasApiKey: boolean;
       }>;
+      openExternalUrl: (url: string) => Promise<boolean>;
     };
   }
 }

@@ -4,6 +4,7 @@
       <SearchBar
         v-model="query"
         @search="handleSearch"
+        @escape="handleEscape"
       />
 
       <ResultCard
@@ -18,29 +19,50 @@
         :apiKeyConfigured="apiKeyConfigured"
         :activeInputType="activeInputType"
         @copy="copyBibtex"
-        @configureApiKey="openApiKeyModal"
+        @configureApiKey="openApiKeyPanel"
       />
 
-      <div v-if="showApiKeyModal" class="modal-backdrop" @click.self="closeApiKeyModal">
-        <div class="modal-card">
-          <div class="modal-title">Semantic Scholar API Key</div>
-          <div class="modal-copy">
-            Title search works without a key, but anonymous requests use shared rate limits.
-            Adding your own key makes title search more reliable.
+      <div
+        v-if="showApiKeyPanel"
+        class="settings-panel"
+      >
+        <div class="settings-panel-header">
+          <div>
+            <div class="settings-title">Semantic Scholar API Key</div>
+            <div class="settings-copy">
+              Title search works without a key, but anonymous requests use shared rate limits.
+              Adding your own key makes title search more reliable.
+            </div>
           </div>
-          <input
-            v-model="apiKeyDraft"
-            type="password"
-            class="modal-input"
-            placeholder="Paste your Semantic Scholar API key"
-          />
-          <div class="modal-help">
-            Your key is stored locally on this machine and injected into the backend at launch.
-          </div>
-          <div class="modal-actions">
-            <button class="secondary-btn" @click="closeApiKeyModal">Cancel</button>
-            <button class="primary-btn" @click="saveApiKey">Save</button>
-          </div>
+          <button class="settings-close" @click="closeApiKeyPanel">Close</button>
+        </div>
+
+        <div class="settings-badge-row">
+          <span class="settings-badge">Optional</span>
+          <span class="settings-badge settings-badge-muted">Improves title-search stability</span>
+        </div>
+
+        <input
+          v-model="apiKeyDraft"
+          type="password"
+          class="settings-input"
+          placeholder="Paste your Semantic Scholar API key"
+        />
+
+        <div class="settings-help">
+          Your key is stored locally on this machine and injected into the backend at launch.
+          If you leave this blank, title search still works with shared anonymous limits.
+        </div>
+
+        <div class="settings-links">
+          <button class="settings-link" @click="openApiKeyDocs">
+            Apply for an API key
+          </button>
+        </div>
+
+        <div class="settings-actions">
+          <button class="secondary-btn" @click="closeApiKeyPanel">Cancel</button>
+          <button class="primary-btn" @click="saveApiKey">Save</button>
         </div>
       </div>
     </div>
@@ -54,6 +76,7 @@ import ResultCard from "./components/ResultCard.vue";
 import { formatBibtex } from "./utils/bibtex";
 
 const API_BASE = "http://127.0.0.1:8765";
+const API_KEY_DOCS_URL = "https://www.semanticscholar.org/product/api#api-key-form";
 
 interface ResolveResponse {
   success: boolean;
@@ -70,7 +93,7 @@ const loading: Ref<boolean> = ref(false);
 const error: Ref<string> = ref("");
 const copied: Ref<boolean> = ref(false);
 const apiKeyConfigured: Ref<boolean> = ref(false);
-const showApiKeyModal: Ref<boolean> = ref(false);
+const showApiKeyPanel: Ref<boolean> = ref(false);
 const apiKeyDraft: Ref<string> = ref("");
 
 const formattedBibtex = computed(() => formatBibtex(rawBibtex.value));
@@ -163,8 +186,8 @@ function handleGlobalClick() {
 }
 
 function handleEscape() {
-  if (showApiKeyModal.value) {
-    closeApiKeyModal();
+  if (showApiKeyPanel.value) {
+    closeApiKeyPanel();
     return;
   }
   const api = (window as any).electronAPI;
@@ -255,12 +278,12 @@ async function loadApiKeyConfig() {
   }
 }
 
-function openApiKeyModal() {
-  showApiKeyModal.value = true;
+function openApiKeyPanel() {
+  showApiKeyPanel.value = true;
 }
 
-function closeApiKeyModal() {
-  showApiKeyModal.value = false;
+function closeApiKeyPanel() {
+  showApiKeyPanel.value = false;
   apiKeyDraft.value = "";
 }
 
@@ -270,10 +293,23 @@ async function saveApiKey() {
     if (!api?.saveSemanticScholarConfig) return;
     const result = await api.saveSemanticScholarConfig(apiKeyDraft.value);
     apiKeyConfigured.value = Boolean(result?.hasApiKey);
-    closeApiKeyModal();
+    closeApiKeyPanel();
   } catch (err) {
     console.error("Failed to save Semantic Scholar API key:", err);
     error.value = "Failed to save Semantic Scholar API key.";
+  }
+}
+
+async function openApiKeyDocs() {
+  try {
+    const api = (window as any).electronAPI;
+    if (api?.openExternalUrl) {
+      await api.openExternalUrl(API_KEY_DOCS_URL);
+      return;
+    }
+    window.open(API_KEY_DOCS_URL, "_blank", "noopener,noreferrer");
+  } catch (err) {
+    console.error("Failed to open Semantic Scholar API key docs:", err);
   }
 }
 </script>
@@ -283,74 +319,128 @@ async function saveApiKey() {
 #app-wrapper {
   width: 100vw;
   height: 100vh;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.001);
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(2, 6, 23, 0.4);
-  backdrop-filter: blur(10px);
-}
-
-.modal-card {
-  width: min(520px, calc(100vw - 40px));
-  border-radius: 18px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  background: rgba(15, 23, 42, 0.96);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.55);
-  padding: 22px;
+.settings-panel {
+  border-top: 1px solid rgba(59, 130, 246, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.88));
+  padding: 18px 24px 20px;
   color: #e2e8f0;
 }
 
-.modal-title {
-  font-size: 18px;
+.settings-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-title {
+  font-size: 15px;
   font-weight: 700;
   color: #f8fafc;
 }
 
-.modal-copy {
-  margin-top: 10px;
-  font-size: 13px;
+.settings-copy {
+  margin-top: 6px;
+  max-width: 520px;
+  font-size: 12px;
   line-height: 1.55;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.settings-close {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(51, 65, 85, 0.92);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.settings-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  color: #bfdbfe;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.settings-badge-muted {
+  background: rgba(51, 65, 85, 0.7);
   color: rgba(226, 232, 240, 0.78);
 }
 
-.modal-input {
+.settings-input {
   width: 100%;
-  margin-top: 16px;
-  padding: 12px 14px;
+  margin-top: 14px;
+  padding: 11px 13px;
   border-radius: 10px;
   border: 1px solid rgba(59, 130, 246, 0.28);
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(15, 23, 42, 0.74);
   color: #f8fafc;
   font-size: 14px;
   outline: none;
 }
 
-.modal-input:focus {
+.settings-input:focus {
   border-color: rgba(96, 165, 250, 0.75);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
 }
 
-.modal-help {
-  margin-top: 10px;
+.settings-help {
+  margin-top: 8px;
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(148, 163, 184, 0.88);
+  color: rgba(148, 163, 184, 0.78);
 }
 
-.modal-actions {
+.settings-links {
+  margin-top: 10px;
+}
+
+.settings-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-link:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+
+.settings-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .primary-btn,
