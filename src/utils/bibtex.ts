@@ -3,7 +3,8 @@ export function formatBibtex(bibtex: string): string {
 
   let text = bibtex.trim();
   const lines = text.split("\n");
-  
+
+  // 单行 BibTeX 需要按字段重新断行，便于展示和复制。
   if (lines.length <= 2) {
     const entryMatch = text.match(/^(@\w+\{[^,]+,)/);
     if (!entryMatch) return text;
@@ -16,6 +17,7 @@ export function formatBibtex(bibtex: string): string {
     let current = "";
     let braceDepth = 0;
 
+    // 只在最外层逗号处分割字段，避免 title={Hello, World} 被错误切开。
     for (let i = 0; i < rest.length; i++) {
       const char = rest[i];
       if (char === "{") braceDepth++;
@@ -40,7 +42,7 @@ export function formatBibtex(bibtex: string): string {
     return formattedLines.join("\n");
   }
 
-  // Already multi-line
+  // 多行 BibTeX 只做缩进规范化。
   const formattedLines: string[] = [];
   for (let line of lines) {
     line = line.trim();

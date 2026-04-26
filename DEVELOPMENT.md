@@ -33,6 +33,9 @@ Without an API key, Semantic Scholar title search still works on shared
 unauthenticated limits, but it may return `429 Too Many Requests` during busy
 periods.
 
+If you use your own Semantic Scholar API key, the current limit is
+`1 request/second`, cumulative across all endpoints.
+
 ### 2. Run Development Mode
 
 **Terminal 1 - Backend:**
@@ -53,6 +56,7 @@ Note:
 - In development, Electron expects the backend to already be running on `127.0.0.1:8765`.
 - Saving a Semantic Scholar API key in the packaged app restarts the bundled backend automatically.
 - In development mode, if you want the backend to use an API key, you still need to export `SEMANTIC_SCHOLAR_API_KEY` in the backend terminal before starting `uvicorn`.
+- The in-app API key field accepts either the raw key or `SEMANTIC_SCHOLAR_API_KEY=...`.
 
 ## Building for Production
 
@@ -110,8 +114,9 @@ any2bibtex/
 │   ├── App.vue
 │   ├── main.ts
 │   └── style.css
+├── assets/            # README assets such as logo and demo gif
 ├── build/             # Icons and build resources
-├── resources/         # Demo gif and built backend output
+├── resources/         # Built backend output
 └── dist-electron/     # Built app (gitignored)
 ```
 

@@ -51,6 +51,18 @@ function getSemanticScholarApiKey() {
   return value;
 }
 
+function normalizeSemanticScholarApiKey(apiKey) {
+  let value = typeof apiKey === 'string' ? apiKey.trim() : '';
+  value = value.replace(/^export\s+/i, '').trim();
+
+  const assignmentMatch = value.match(/^SEMANTIC_SCHOLAR_API_KEY\s*=\s*(.*)$/i);
+  if (assignmentMatch) {
+    value = assignmentMatch[1].trim();
+  }
+
+  return value.replace(/^['"]|['"]$/g, '').trim();
+}
+
 /**
  * Get the path to the Python backend executable
  */
@@ -204,8 +216,8 @@ function createWindow() {
     icon: getAppIconPath(),
     frame: false,
     transparent: true,
-    resizable: false,
-    alwaysOnTop: true,
+    resizable: isDev,
+    alwaysOnTop: !isDev,
     skipTaskbar: false, // Show in taskbar/dock
     show: false,
     webPreferences: {
@@ -225,11 +237,14 @@ function createWindow() {
     mainWindow.loadFile(htmlPath);
   }
 
-  // Auto-hide when window loses focus (e.g., clicking outside)
-  mainWindow.on('blur', () => {
-    console.log('[DEBUG] Window lost focus (blur) - Hiding');
-    mainWindow.hide();
-  });
+  // Auto-hide is useful for the packaged spotlight window, but it makes
+  // detached DevTools and API-key setup painful during development.
+  if (!isDev) {
+    mainWindow.on('blur', () => {
+      console.log('[DEBUG] Window lost focus (blur) - Hiding');
+      mainWindow.hide();
+    });
+  }
 
   // Robust Escape handling via main process (catches Esc even if focused on child elements)
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -337,11 +352,15 @@ ipcMain.handle('get-semantic-scholar-config', () => {
 });
 
 ipcMain.handle('save-semantic-scholar-config', async (event, apiKey) => {
-  const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
+  const normalizedApiKey = normalizeSemanticScholarApiKey(apiKey);
   saveSettings({
     semanticScholarApiKey: normalizedApiKey
   });
-  await restartPythonBackend();
+
+  restartPythonBackend().catch((error) => {
+    console.error('Failed to restart backend after saving Semantic Scholar API key:', error);
+  });
+
   return {
     hasApiKey: Boolean(normalizedApiKey)
   };

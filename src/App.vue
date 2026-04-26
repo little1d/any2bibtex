@@ -46,7 +46,7 @@
           v-model="apiKeyDraft"
           type="password"
           class="settings-input"
-          placeholder="Paste your Semantic Scholar API key"
+          placeholder="Paste API key or SEMANTIC_SCHOLAR_API_KEY=..."
         />
 
         <div class="settings-help">
@@ -62,7 +62,9 @@
 
         <div class="settings-actions">
           <button class="secondary-btn" @click="closeApiKeyPanel">Cancel</button>
-          <button class="primary-btn" @click="saveApiKey">Save</button>
+          <button class="primary-btn" :disabled="savingApiKey" @click="saveApiKey">
+            {{ savingApiKey ? "Saving..." : "Save" }}
+          </button>
         </div>
       </div>
     </div>
@@ -95,6 +97,7 @@ const copied: Ref<boolean> = ref(false);
 const apiKeyConfigured: Ref<boolean> = ref(false);
 const showApiKeyPanel: Ref<boolean> = ref(false);
 const apiKeyDraft: Ref<string> = ref("");
+const savingApiKey: Ref<boolean> = ref(false);
 
 const formattedBibtex = computed(() => formatBibtex(rawBibtex.value));
 const loadingMessage = computed(() => {
@@ -288,15 +291,23 @@ function closeApiKeyPanel() {
 }
 
 async function saveApiKey() {
+  if (savingApiKey.value) return;
+  savingApiKey.value = true;
+
   try {
     const api = (window as any).electronAPI;
-    if (!api?.saveSemanticScholarConfig) return;
+    if (!api?.saveSemanticScholarConfig) {
+      error.value = "Semantic Scholar API key settings are unavailable.";
+      return;
+    }
     const result = await api.saveSemanticScholarConfig(apiKeyDraft.value);
     apiKeyConfigured.value = Boolean(result?.hasApiKey);
     closeApiKeyPanel();
   } catch (err) {
     console.error("Failed to save Semantic Scholar API key:", err);
     error.value = "Failed to save Semantic Scholar API key.";
+  } finally {
+    savingApiKey.value = false;
   }
 }
 
@@ -451,6 +462,12 @@ async function openApiKeyDocs() {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .primary-btn {
