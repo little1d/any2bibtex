@@ -105,6 +105,8 @@ Typical outputs:
 - Windows: `src-tauri/target/release/bundle/nsis/*.exe`
 - Linux: `src-tauri/target/release/bundle/appimage/*.AppImage` and `src-tauri/target/release/bundle/deb/*.deb`
 
+macOS release builds use ad-hoc signing via `bundle.macOS.signingIdentity = "-"`. This keeps downloaded Apple Silicon builds code-signed, but it is not a substitute for Developer ID signing and notarization.
+
 On macOS, if the final DMG script fails in a sandboxed terminal but `.app` is generated, rerun the generated script locally:
 
 ```bash

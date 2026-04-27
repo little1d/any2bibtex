@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - **Windows Packaging** - Added the required Windows `.ico` app icon so Tauri can generate the Windows resource file during release builds.
+- **macOS Packaging** - Added ad-hoc code signing for macOS release builds to avoid invalid-signature app damage warnings on downloaded DMG artifacts.
 
 ## [0.0.4] - 2026-04-27
 

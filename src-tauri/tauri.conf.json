@@ -35,6 +35,9 @@
     "active": true,
     "targets": ["dmg", "nsis", "appimage", "deb"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
-    "resources": ["icons/tray-icon.png"]
+    "resources": ["icons/tray-icon.png"],
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }
