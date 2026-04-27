@@ -21,6 +21,10 @@ All notable changes to this project will be documented in this file.
 - **Electron Main Process** - Removed Electron main/preload code from the runtime path.
 - **Python FastAPI Backend** - Removed the Python backend source and PyInstaller build flow.
 
+### Fixed
+
+- **Windows Packaging** - Added the required Windows `.ico` app icon so Tauri can generate the Windows resource file during release builds.
+
 ## [0.0.4] - 2026-04-27
 
 ### Added
