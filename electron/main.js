@@ -13,12 +13,20 @@ const isDev = !app.isPackaged;
 const BACKEND_PORT = 8765;
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
 const SETTINGS_FILE = 'settings.json';
+const VALID_THEMES = new Set(['dark', 'light']);
 
 function getAppIconPath() {
   if (isDev) {
     return path.join(__dirname, "../build/icon.png");
   }
   return path.join(process.resourcesPath, "icon.png");
+}
+
+function getTraySourceIconPath() {
+  if (isDev) {
+    return path.join(__dirname, "../build/tray-icon.png");
+  }
+  return path.join(process.resourcesPath, "tray-icon.png");
 }
 
 function getSettingsPath() {
@@ -49,6 +57,21 @@ function getSemanticScholarApiKey() {
     ? settings.semanticScholarApiKey.trim()
     : '';
   return value;
+}
+
+function getAppTheme() {
+  const settings = loadSettings();
+  return VALID_THEMES.has(settings.theme) ? settings.theme : 'dark';
+}
+
+function saveAppTheme(theme) {
+  const nextTheme = VALID_THEMES.has(theme) ? theme : 'dark';
+  saveSettings({ theme: nextTheme });
+  if (mainWindow) {
+    mainWindow.webContents.send('theme-changed', nextTheme);
+  }
+  updateTrayMenu();
+  return nextTheme;
 }
 
 function normalizeSemanticScholarApiKey(apiKey) {
@@ -243,6 +266,7 @@ function createWindow() {
     mainWindow.on('blur', () => {
       console.log('[DEBUG] Window lost focus (blur) - Hiding');
       mainWindow.hide();
+      updateTrayMenu();
     });
   }
 
@@ -251,6 +275,7 @@ function createWindow() {
     if (input.key === 'Escape' && input.type === 'keyDown') {
       console.log('[DEBUG] Escape pressed - Hiding');
       mainWindow.hide();
+      updateTrayMenu();
       event.preventDefault();
     }
   });
@@ -263,39 +288,60 @@ function createWindow() {
   // Show window when clicked on dock icon (macOS)
   mainWindow.on('show', () => {
     mainWindow.focus();
+    updateTrayMenu();
+  });
+
+  mainWindow.on('hide', () => {
+    updateTrayMenu();
   });
 }
 
 function createTray() {
-  // Create a simple tray icon (16x16 or 22x22 for macOS)
-  const iconPath = isDev 
-    ? path.join(__dirname, '../build/tray-icon.png')
-    : path.join(process.resourcesPath, 'tray-icon.png');
-  
-  // Use a template image for macOS to respect dark/light mode
-  let icon;
+  const iconPath = getTraySourceIconPath();
+
+  let icon = nativeImage.createEmpty();
   if (fs.existsSync(iconPath)) {
     icon = nativeImage.createFromPath(iconPath);
     if (process.platform === 'darwin') {
+      // macOS menu bar icons should be template images so the system tints them.
       icon.setTemplateImage(true);
     }
-  } else {
-    // Create a simple colored icon if no custom icon exists
-    icon = nativeImage.createEmpty();
   }
   
   tray = new Tray(icon);
   tray.setToolTip('any2bibtex');
-  
+
+  updateTrayMenu();
+  tray.on('click', showMainWindow);
+}
+
+function updateTrayMenu() {
+  if (!tray) {
+    return;
+  }
+
+  const theme = getAppTheme();
   const contextMenu = Menu.buildFromTemplate([
     { 
-      label: 'Show any2bibtex', 
-      click: () => {
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      }
+      label: 'Show',
+      click: showMainWindow
+    },
+    {
+      label: 'Hide',
+      click: hideMainWindow
+    },
+    { type: 'separator' },
+    {
+      label: 'Dark Mode',
+      type: 'radio',
+      checked: theme === 'dark',
+      click: () => saveAppTheme('dark')
+    },
+    {
+      label: 'Light Mode',
+      type: 'radio',
+      checked: theme === 'light',
+      click: () => saveAppTheme('light')
     },
     { type: 'separator' },
     { 
@@ -307,30 +353,45 @@ function createTray() {
   ]);
   
   tray.setContextMenu(contextMenu);
-  
-  // Click on tray icon to show window
-  tray.on('click', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    }
-  });
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    return;
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  mainWindow.moveTop();
+  mainWindow.focus();
+  updateTrayMenu();
+}
+
+function hideMainWindow() {
+  if (!mainWindow) {
+    return;
+  }
+  mainWindow.hide();
+  updateTrayMenu();
+}
+
+function toggleMainWindow() {
+  if (!mainWindow) {
+    return;
+  }
+  if (mainWindow.isVisible()) {
+    hideMainWindow();
+    return;
+  }
+  showMainWindow();
+  updateTrayMenu();
 }
 
 function registerGlobalShortcut() {
   const shortcut = process.platform === 'darwin' ? 'Option+Space' : 'Alt+Space';
   
   globalShortcut.register(shortcut, () => {
-    if (mainWindow.isVisible()) {
-      mainWindow.hide();
-    } else {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    toggleMainWindow();
   });
 }
 
@@ -342,7 +403,17 @@ ipcMain.handle('copy-to-clipboard', (event, text) => {
 
 ipcMain.handle('hide-window', () => {
   mainWindow.hide();
+  updateTrayMenu();
   return true;
+});
+
+ipcMain.handle('get-app-theme', () => getAppTheme());
+
+ipcMain.handle('set-app-theme', (event, theme) => saveAppTheme(theme));
+
+ipcMain.handle('toggle-app-theme', () => {
+  const nextTheme = getAppTheme() === 'dark' ? 'light' : 'dark';
+  return saveAppTheme(nextTheme);
 });
 
 ipcMain.handle('get-semantic-scholar-config', () => {
@@ -378,7 +449,7 @@ ipcMain.handle('open-external-url', async (event, url) => {
 app.whenReady().then(async () => {
   await startPythonBackend();
   createWindow();
-  // createTray(); // Disabled per user request
+  createTray();
   registerGlobalShortcut();
 });
 

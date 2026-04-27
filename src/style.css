@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+:root[data-theme="dark"] {
+  --app-bg: #0f172a;
+  --surface-bg: #101827;
+  --surface-muted-bg: rgba(15, 23, 42, 0.72);
+  --text-main: #f8fafc;
+  --text-muted: rgba(203, 213, 225, 0.76);
+  --text-subtle: rgba(147, 197, 253, 0.58);
+  --border-soft: rgba(59, 130, 246, 0.2);
+  --control-bg: rgba(30, 41, 59, 0.96);
+  --code-bg: rgba(15, 23, 42, 0.8);
+  --accent: #3b82f6;
+  --accent-soft: rgba(37, 99, 235, 0.14);
+}
+
+:root[data-theme="light"] {
+  --app-bg: #f8fafc;
+  --surface-bg: #ffffff;
+  --surface-muted-bg: rgba(241, 245, 249, 0.92);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+  --border-soft: rgba(15, 23, 42, 0.12);
+  --control-bg: #e2e8f0;
+  --code-bg: #f1f5f9;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -22,20 +51,4 @@ body,
   width: 100%;
   height: 100%;
   background: transparent;
-}
-
-/* 主容器样式 */
-.spotlight-container {
-  width: 100%;
-  max-width: 664px;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.96));
-  border-radius: 16px;
-  border: 1px solid rgba(96, 165, 250, 0.12);
-  box-shadow:
-    0 12px 28px rgba(2, 6, 23, 0.18),
-    0 2px 8px rgba(15, 23, 42, 0.14);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }

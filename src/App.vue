@@ -1,6 +1,15 @@
 <template>
   <div id="app-wrapper" @mousedown.self="handleGlobalClick">
     <div class="spotlight-container">
+      <button
+        class="theme-toggle"
+        :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        @click="toggleTheme"
+      >
+        {{ theme === "dark" ? "☀" : "☾" }}
+      </button>
+
       <SearchBar
         v-model="query"
         @search="handleSearch"
@@ -22,63 +31,25 @@
         @configureApiKey="openApiKeyPanel"
       />
 
-      <div
+      <ApiKeyPanel
         v-if="showApiKeyPanel"
-        class="settings-panel"
-      >
-        <div class="settings-panel-header">
-          <div>
-            <div class="settings-title">Semantic Scholar API Key</div>
-            <div class="settings-copy">
-              Title search works without a key, but anonymous requests use shared rate limits.
-              Adding your own key makes title search more reliable.
-            </div>
-          </div>
-          <button class="settings-close" @click="closeApiKeyPanel">Close</button>
-        </div>
-
-        <div class="settings-badge-row">
-          <span class="settings-badge">Optional</span>
-          <span class="settings-badge settings-badge-muted">Improves title-search stability</span>
-        </div>
-
-        <input
-          v-model="apiKeyDraft"
-          type="password"
-          class="settings-input"
-          placeholder="Paste API key or SEMANTIC_SCHOLAR_API_KEY=..."
-        />
-
-        <div class="settings-help">
-          Your key is stored locally on this machine and injected into the backend at launch.
-          If you leave this blank, title search still works with shared anonymous limits.
-        </div>
-
-        <div class="settings-links">
-          <button class="settings-link" @click="openApiKeyDocs">
-            Apply for an API key
-          </button>
-        </div>
-
-        <div class="settings-actions">
-          <button class="secondary-btn" @click="closeApiKeyPanel">Cancel</button>
-          <button class="primary-btn" :disabled="savingApiKey" @click="saveApiKey">
-            {{ savingApiKey ? "Saving..." : "Save" }}
-          </button>
-        </div>
-      </div>
+        :apiKeyConfigured="apiKeyConfigured"
+        @close="closeApiKeyPanel"
+        @saved="handleApiKeySaved"
+        @error="handleApiKeyError"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, Ref, watch } from "vue";
+import ApiKeyPanel from "./components/ApiKeyPanel.vue";
 import SearchBar from "./components/SearchBar.vue";
 import ResultCard from "./components/ResultCard.vue";
 import { formatBibtex } from "./utils/bibtex";
 
 const API_BASE = "http://127.0.0.1:8765";
-const API_KEY_DOCS_URL = "https://www.semanticscholar.org/product/api#api-key-form";
 
 interface ResolveResponse {
   success: boolean;
@@ -96,8 +67,8 @@ const error: Ref<string> = ref("");
 const copied: Ref<boolean> = ref(false);
 const apiKeyConfigured: Ref<boolean> = ref(false);
 const showApiKeyPanel: Ref<boolean> = ref(false);
-const apiKeyDraft: Ref<string> = ref("");
-const savingApiKey: Ref<boolean> = ref(false);
+const theme: Ref<"dark" | "light"> = ref("dark");
+let removeThemeListener: (() => void) | null = null;
 
 const formattedBibtex = computed(() => formatBibtex(rawBibtex.value));
 const loadingMessage = computed(() => {
@@ -210,10 +181,15 @@ function onKeyDown(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener("keydown", onKeyDown);
   loadApiKeyConfig();
+  loadThemeConfig();
+  removeThemeListener = window.electronAPI?.onThemeChanged?.((nextTheme) => {
+    applyTheme(nextTheme);
+  }) ?? null;
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", onKeyDown);
+  removeThemeListener?.();
 });
 
 async function handleSearch() {
@@ -287,40 +263,41 @@ function openApiKeyPanel() {
 
 function closeApiKeyPanel() {
   showApiKeyPanel.value = false;
-  apiKeyDraft.value = "";
 }
 
-async function saveApiKey() {
-  if (savingApiKey.value) return;
-  savingApiKey.value = true;
+function handleApiKeySaved(hasApiKey: boolean) {
+  apiKeyConfigured.value = hasApiKey;
+}
 
+function handleApiKeyError(message: string) {
+  error.value = message;
+}
+
+function applyTheme(nextTheme: "dark" | "light") {
+  theme.value = nextTheme;
+  document.documentElement.dataset.theme = nextTheme;
+}
+
+async function loadThemeConfig() {
   try {
-    const api = (window as any).electronAPI;
-    if (!api?.saveSemanticScholarConfig) {
-      error.value = "Semantic Scholar API key settings are unavailable.";
-      return;
-    }
-    const result = await api.saveSemanticScholarConfig(apiKeyDraft.value);
-    apiKeyConfigured.value = Boolean(result?.hasApiKey);
-    closeApiKeyPanel();
+    const nextTheme = await window.electronAPI?.getAppTheme?.();
+    applyTheme(nextTheme === "light" ? "light" : "dark");
   } catch (err) {
-    console.error("Failed to save Semantic Scholar API key:", err);
-    error.value = "Failed to save Semantic Scholar API key.";
-  } finally {
-    savingApiKey.value = false;
+    console.error("Failed to load app theme:", err);
+    applyTheme("dark");
   }
 }
 
-async function openApiKeyDocs() {
+async function toggleTheme() {
+  const nextTheme = theme.value === "dark" ? "light" : "dark";
+  applyTheme(nextTheme);
   try {
-    const api = (window as any).electronAPI;
-    if (api?.openExternalUrl) {
-      await api.openExternalUrl(API_KEY_DOCS_URL);
-      return;
+    const savedTheme = await window.electronAPI?.setAppTheme?.(nextTheme);
+    if (savedTheme) {
+      applyTheme(savedTheme);
     }
-    window.open(API_KEY_DOCS_URL, "_blank", "noopener,noreferrer");
   } catch (err) {
-    console.error("Failed to open Semantic Scholar API key docs:", err);
+    console.error("Failed to save app theme:", err);
   }
 }
 </script>
@@ -330,153 +307,42 @@ async function openApiKeyDocs() {
 #app-wrapper {
   width: 100vw;
   height: 100vh;
-  padding: 10px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.001);
 }
 
-.settings-panel {
-  border-top: 1px solid rgba(59, 130, 246, 0.16);
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.88));
-  padding: 18px 24px 20px;
-  color: #e2e8f0;
-}
-
-.settings-panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.settings-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #f8fafc;
-}
-
-.settings-copy {
-  margin-top: 6px;
-  max-width: 520px;
-  font-size: 12px;
-  line-height: 1.55;
-  color: rgba(226, 232, 240, 0.72);
-}
-
-.settings-close {
-  flex-shrink: 0;
-  border: none;
-  border-radius: 999px;
-  padding: 7px 12px;
-  background: rgba(51, 65, 85, 0.92);
-  color: #cbd5e1;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.settings-badge-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.settings-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  color: #bfdbfe;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-
-.settings-badge-muted {
-  background: rgba(51, 65, 85, 0.7);
-  color: rgba(226, 232, 240, 0.78);
-}
-
-.settings-input {
+.spotlight-container {
+  position: relative;
   width: 100%;
-  margin-top: 14px;
-  padding: 11px 13px;
-  border-radius: 10px;
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  background: rgba(15, 23, 42, 0.74);
-  color: #f8fafc;
-  font-size: 14px;
-  outline: none;
-}
-
-.settings-input:focus {
-  border-color: rgba(96, 165, 250, 0.75);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
-}
-
-.settings-help {
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgba(148, 163, 184, 0.78);
-}
-
-.settings-links {
-  margin-top: 10px;
-}
-
-.settings-link {
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #93c5fd;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.settings-link:hover {
-  color: #bfdbfe;
-  text-decoration: underline;
-}
-
-.settings-actions {
+  max-width: 664px;
+  overflow: hidden;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
+  flex-direction: column;
+  background: var(--app-bg);
+  border-radius: 16px;
 }
 
-.primary-btn,
-.secondary-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
+.theme-toggle {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  background: var(--control-bg);
+  color: var(--text-main);
   cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  -webkit-app-region: no-drag;
 }
 
-.primary-btn:disabled,
-.secondary-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.primary-btn {
-  color: #eff6ff;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-}
-
-.secondary-btn {
-  color: #cbd5e1;
-  background: rgba(30, 41, 59, 0.96);
+.theme-toggle:hover {
+  border-color: var(--accent);
 }
 </style>

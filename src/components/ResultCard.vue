@@ -30,7 +30,7 @@
         class="action-link mx-auto"
         @click="emit('configureApiKey')"
       >
-        {{ apiKeyConfigured ? "Update Semantic Scholar API key" : "Set Semantic Scholar API key" }}
+        {{ apiKeyConfigured ? "Manage Semantic Scholar API key" : "Set Semantic Scholar API key" }}
       </div>
     </div>
 
@@ -57,14 +57,14 @@
         class="action-link"
         @click="emit('configureApiKey')"
       >
-        {{ apiKeyConfigured ? "Semantic Scholar API key configured" : "Set Semantic Scholar API key" }}
+        {{ apiKeyConfigured ? "Manage Semantic Scholar API key" : "Set Semantic Scholar API key" }}
       </div>
     </div>
 
     <!-- Status Bar -->
     <div
       v-if="bibtex"
-      class="flex items-center justify-between border-t border-blue-500/20 bg-slate-950/50 px-6 py-3 text-xs text-blue-300/60"
+      class="status-bar flex items-center justify-between border-t border-blue-500/20 px-6 py-3 text-xs"
     >
       <div class="flex items-center gap-2">
         <span>Type:</span>
@@ -123,6 +123,26 @@ const copyButtonClass = computed(() => [
 .result-area {
   max-height: 350px;
   overflow-y: auto;
+  border-color: var(--border-soft) !important;
+  background: var(--surface-muted-bg);
+  color: var(--text-main);
+}
+
+.result-area,
+.result-area * {
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.result-area pre {
+  border-color: var(--border-soft) !important;
+  background: var(--code-bg) !important;
+  color: var(--accent) !important;
+}
+
+.status-bar {
+  border-color: var(--border-soft) !important;
+  background: var(--surface-muted-bg);
+  color: var(--text-subtle);
 }
 
 .loading-spinner {
@@ -141,19 +161,19 @@ const copyButtonClass = computed(() => [
 }
 
 .action-link {
-  color: #bfdbfe;
+  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
   text-align: center;
   cursor: pointer;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(96, 165, 250, 0.18);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-soft);
 }
 
 .action-link:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: var(--accent-soft);
 }
 
 .result-area::-webkit-scrollbar {

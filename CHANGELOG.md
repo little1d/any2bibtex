@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.4] - 2026-04-27
+
+### Added
+
+- **Menu Bar Tray** - Restored the macOS tray entry with Show, Hide, Quit, and theme selection actions.
+- **Theme Switching** - Added persistent dark/light theme support from both the tray menu and in-app icon button.
+- **API Key Management** - Added a standalone Semantic Scholar API key panel with configured-state display, removal confirmation, and direct API key application link.
+
+### Changed
+
+- **Tray Icon** - Replaced the menu bar icon with a cleaner template image optimized for macOS tinting.
+- **Window Styling** - Simplified the main app container, removed the old glass frame, and aligned component colors with theme variables.
+- **API Key UX** - Updated the configured-key state so users can manage or remove the stored key instead of seeing the initial setup flow again.
+
+### Fixed
+
+- **Tray Interaction** - Left-clicking the tray icon now only shows and focuses the app instead of opening the context menu or toggling visibility.
+- **Development Focus Behavior** - The tray and global shortcut paths now share the same show/hide logic, reducing inconsistent window state updates.
+
 ## [0.0.3] - 2026-04-20
 
 ### Added
