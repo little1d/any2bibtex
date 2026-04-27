@@ -1,6 +1,6 @@
 {
   "name": "any2bibtex",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A desktop tool to convert DOI, arXiv ID, or paper title to BibTeX",
   "author": {
     "name": "little1d",

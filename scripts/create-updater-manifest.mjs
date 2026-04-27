@@ -40,7 +40,10 @@ function releaseUrl(filePath) {
 
 async function readLatestNotes() {
   const changelog = await readFile(changelogPath, "utf8");
-  const match = changelog.match(/## \[[^\]]+\][\s\S]*?(?=\n## \[|$)/);
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = changelog.match(
+    new RegExp(`## \\[${escapedVersion}\\][\\s\\S]*?(?=\\n## \\[|$)`),
+  );
   return match ? match[0].trim() : `any2bibtex v${version}`;
 }
 
@@ -70,6 +73,7 @@ const manifest = {
   },
 };
 
+await writeFile(path.join(releaseDir, "release-notes.md"), `${manifest.notes}\n`);
 await writeFile(
   path.join(releaseDir, "latest.json"),
   `${JSON.stringify(manifest, null, 2)}\n`,

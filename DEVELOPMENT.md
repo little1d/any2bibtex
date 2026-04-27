@@ -136,7 +136,7 @@ On macOS, if the final DMG script fails in a sandboxed terminal but `.app` is ge
 
 ```bash
 cd src-tauri/target/release/bundle/dmg
-./bundle_dmg.sh any2bibtex_0.0.5_aarch64.dmg ../macos/any2bibtex.app
+./bundle_dmg.sh any2bibtex_0.0.6_aarch64.dmg ../macos/any2bibtex.app
 ```
 
 ## Shortcuts
@@ -178,9 +178,9 @@ Create and push a release tag:
 
 ```bash
 git pull origin main
-git tag v0.0.5
+git tag v0.0.6
 git push origin main
-git push origin v0.0.5
+git push origin v0.0.6
 ```
 
 After pushing the tag:
@@ -192,8 +192,8 @@ After pushing the tag:
 If the tag already exists and you intentionally want to retarget it:
 
 ```bash
-git tag -d v0.0.5
-git push origin :refs/tags/v0.0.5
-git tag v0.0.5
-git push origin v0.0.5
+git tag -d v0.0.6
+git push origin :refs/tags/v0.0.6
+git tag v0.0.6
+git push origin v0.0.6
 ```

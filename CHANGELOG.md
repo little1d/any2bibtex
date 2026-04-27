@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.6] - 2026-04-27
+
+### Added
+
+- **In-App Updates** - Added a Tauri updater flow with update detection, download progress, restart prompt, and post-restart success confirmation.
+- **Updater Release Artifacts** - Added signed updater artifacts and `latest.json` generation to the GitHub release workflow.
+
+### Changed
+
+- **Release Notes** - GitHub Releases and in-app update notes now show only the changelog section for the current release tag.
+
 ## [0.0.5] - 2026-04-27
 
 ### Added
@@ -9,7 +20,6 @@ All notable changes to this project will be documented in this file.
 - **Tauri Runtime** - Migrated the desktop shell from Electron to Tauri 2.
 - **Rust Resolver** - Reimplemented DOI, arXiv, and Semantic Scholar title resolution in Rust Tauri commands.
 - **Rust Shell Integrations** - Moved tray menu, global shortcut, settings, clipboard, and external-link handling into the Tauri/Rust layer.
-- **In-App Updates** - Added a Tauri updater flow with update detection, download progress, restart prompt, and post-restart success confirmation.
 
 ### Changed
 

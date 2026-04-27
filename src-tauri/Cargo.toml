@@ -1,6 +1,6 @@
 [package]
 name = "any2bibtex"
-version = "0.0.5"
+version = "0.0.6"
 description = "Convert DOI, arXiv ID, or paper title to BibTeX"
 authors = ["little1d"]
 edition = "2021"
