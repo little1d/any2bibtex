@@ -1,6 +1,6 @@
 [package]
 name = "any2bibtex"
-version = "0.0.4"
+version = "0.0.5"
 description = "Convert DOI, arXiv ID, or paper title to BibTeX"
 authors = ["little1d"]
 edition = "2021"
@@ -21,7 +21,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 strsim = "0.11"
-tauri = { version = "2", features = ["image-png", "tray-icon"] }
+tauri = { version = "2", features = ["image-png", "tray-icon", "macos-private-api"] }
 tauri-plugin-global-shortcut = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 urlencoding = "2"

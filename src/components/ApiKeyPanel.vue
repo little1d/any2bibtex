@@ -37,7 +37,7 @@
         />
 
         <div class="settings-help">
-          Your key is stored locally on this machine and injected into the backend at launch.
+          Your key is stored locally on this machine and used by the Rust resolver.
           If you leave this blank, title search still works with shared anonymous limits.
         </div>
       </template>

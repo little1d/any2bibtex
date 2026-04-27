@@ -1,6 +1,6 @@
 {
   "name": "any2bibtex",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A desktop tool to convert DOI, arXiv ID, or paper title to BibTeX",
   "author": {
     "name": "little1d",
@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "vue": "^3.4.0"
   },
   "devDependencies": {

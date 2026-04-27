@@ -299,7 +299,7 @@ async function toggleTheme() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.001);
+  background: transparent;
 }
 
 .spotlight-container {

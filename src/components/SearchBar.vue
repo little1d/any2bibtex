@@ -1,7 +1,7 @@
 <template>
   <div class="search-section">
     <!-- Drag Region (Top Bar) -->
-    <div class="drag-bar" data-tauri-drag-region></div>
+    <div class="drag-bar" data-tauri-drag-region @mousedown="startDrag"></div>
 
     <div class="input-wrapper">
       <input
@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { startWindowDrag } from "../services/desktop";
 
 const props = defineProps<{
   modelValue: string;
@@ -38,6 +39,12 @@ const inputRef = ref<HTMLInputElement | null>(null);
 
 function handleEsc() {
   emit("escape");
+}
+
+function startDrag() {
+  startWindowDrag().catch((error) => {
+    console.warn("Failed to start window drag:", error);
+  });
 }
 
 onMounted(() => {

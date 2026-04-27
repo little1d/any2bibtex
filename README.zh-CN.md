@@ -60,15 +60,16 @@
 | 层级 | 技术 |
 | --- | --- |
 | 前端 | [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/) + [Tailwind CSS](https://tailwindcss.com/) |
-| 桌面端 | [Electron](https://www.electronjs.org/) |
-| 后端 | [Python](https://www.python.org/) + [FastAPI](https://fastapi.tiangolo.com/) |
-| 构建 | [Vite](https://vitejs.dev/) + [electron-builder](https://www.electron.build/) + [PyInstaller](https://pyinstaller.org/) |
+| 桌面端 | [Tauri 2](https://tauri.app/) |
+| 后端 | [Rust](https://www.rust-lang.org/) Tauri commands |
+| 构建 | [Vite](https://vitejs.dev/) + [Cargo](https://doc.rust-lang.org/cargo/) |
 
 ### Roadmap
 
 - [x] 改进标题检索匹配质量和 fallback 行为
+- [x] 从 Electron + Python 后端迁移到 Tauri + Rust resolver
 - [ ] 相似文献检索：输入摘要，找到相关论文
-- [ ] 评估迁移到 Tauri 2，以降低安装包体积和启动开销
+- [ ] 改进跨平台打包和签名流程
 
 ### Star History
 

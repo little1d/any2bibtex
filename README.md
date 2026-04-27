@@ -62,15 +62,16 @@
 | Layer       | Technology                                                                                                              |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
 | 🖥 Frontend | [Vue 3](https://vuejs.org/) + [TypeScript](https://www.typescriptlang.org/) + [Tailwind CSS](https://tailwindcss.com/)  |
-| 💻 Desktop  | [Electron](https://www.electronjs.org/)                                                                                 |
-| ⚙️ Backend  | [Python](https://www.python.org/) + [FastAPI](https://fastapi.tiangolo.com/)                                            |
-| 📦 Build    | [Vite](https://vitejs.dev/) + [electron-builder](https://www.electron.build/) + [PyInstaller](https://pyinstaller.org/) |
+| 💻 Desktop  | [Tauri 2](https://tauri.app/)                                                                                           |
+| ⚙️ Backend  | [Rust](https://www.rust-lang.org/) Tauri commands                                                                       |
+| 📦 Build    | [Vite](https://vitejs.dev/) + [Cargo](https://doc.rust-lang.org/cargo/)                                                 |
 
 ### 🗺 Roadmap
 
 - [x] Improve title search matching quality and fallback behavior
+- [x] Migrate from Electron + Python backend to Tauri + Rust resolver
 - [ ] Similarity-based reference search (input abstract → find related papers)
-- [ ] Evaluate a Tauri 2 migration to reduce package size and startup overhead
+- [ ] Improve cross-platform packaging and signing
 
 ### ⭐ Star History
 

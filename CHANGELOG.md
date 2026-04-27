@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.5] - 2026-04-27
+
+### Added
+
+- **Tauri Runtime** - Migrated the desktop shell from Electron to Tauri 2.
+- **Rust Resolver** - Reimplemented DOI, arXiv, and Semantic Scholar title resolution in Rust Tauri commands.
+- **Rust Shell Integrations** - Moved tray menu, global shortcut, settings, clipboard, and external-link handling into the Tauri/Rust layer.
+
+### Changed
+
+- **Package Size** - Removed the bundled Python backend and Electron runtime path, substantially reducing local macOS app and DMG size.
+- **Development Workflow** - Replaced the separate FastAPI backend workflow with a single `npm run dev` Tauri workflow.
+- **Window Transparency** - Enabled macOS transparent-window support through Tauri `macOSPrivateApi`.
+
+### Removed
+
+- **Electron Main Process** - Removed Electron main/preload code from the runtime path.
+- **Python FastAPI Backend** - Removed the Python backend source and PyInstaller build flow.
+
 ## [0.0.4] - 2026-04-27
 
 ### Added
