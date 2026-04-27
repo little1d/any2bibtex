@@ -21,10 +21,14 @@ async function listFiles(dir) {
   return files.flat();
 }
 
-function findArtifact(files, matcher) {
+function findArtifact(files, label, matcher) {
   const match = files.find((file) => matcher(path.basename(file)));
   if (!match) {
-    throw new Error("Missing updater artifact for matcher");
+    const available = files
+      .map((file) => path.relative(releaseDir, file))
+      .sort()
+      .join("\n");
+    throw new Error(`Missing updater artifact for ${label}. Available files:\n${available}`);
   }
   return match;
 }
@@ -49,9 +53,15 @@ async function readLatestNotes() {
 
 const files = await listFiles(releaseDir);
 
-const macArtifact = findArtifact(files, (name) => name.endsWith(".app.tar.gz"));
-const windowsArtifact = findArtifact(files, (name) => name.endsWith(".exe"));
-const linuxArtifact = findArtifact(files, (name) => name.endsWith(".AppImage"));
+const macArtifact = findArtifact(files, "macOS .app.tar.gz", (name) =>
+  name.endsWith(".app.tar.gz"),
+);
+const windowsArtifact = findArtifact(files, "Windows .exe", (name) =>
+  name.endsWith(".exe"),
+);
+const linuxArtifact = findArtifact(files, "Linux .AppImage", (name) =>
+  name.endsWith(".AppImage"),
+);
 
 const manifest = {
   version,
