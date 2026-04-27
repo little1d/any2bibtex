@@ -147,6 +147,6 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: any2bibtex v${{ steps.get_version.outputs.VERSION }}
           body_path: release-files/release-notes.md
-          files: release-files/*
+          files: release-files/**/*
           draft: false
           prerelease: false
