@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-col">
-    <div v-if="loading" class="result-area border-t border-blue-500/20 px-6 py-4">
-      <div class="flex items-center justify-center gap-3 p-6 text-blue-300/70">
+    <div v-if="loading" class="result-area border-t px-6 py-4">
+      <div class="flex items-center justify-center gap-3 p-6 loading-state">
         <div class="loading-spinner"></div>
         <div class="flex flex-col gap-1.5">
           <span>{{ loadingMessage }}</span>
           <span
             v-if="loadingDetail"
-            class="max-w-[420px] text-xs leading-[1.4] text-blue-300/50"
+            class="max-w-[420px] text-xs leading-[1.4] loading-detail"
           >
             {{ loadingDetail }}
           </span>
@@ -15,13 +15,13 @@
       </div>
     </div>
 
-    <div v-else-if="error" class="result-area border-t border-blue-500/20 px-6 py-4">
-      <div class="px-4 pb-1.5 pt-2 text-center text-sm leading-[1.45] text-red-300">
+    <div v-else-if="error" class="result-area border-t px-6 py-4">
+      <div class="error-message px-4 pb-1.5 pt-2 text-center text-sm leading-[1.45]">
         {{ error }}
       </div>
       <div
         v-if="errorHint"
-        class="px-5 pb-2.5 text-center text-xs leading-normal text-red-300/80"
+        class="error-hint px-5 pb-2.5 text-center text-xs leading-normal"
       >
         {{ errorHint }}
       </div>
@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <div v-else-if="bibtex" class="result-area border-t border-blue-500/20 px-6 py-4">
+    <div v-else-if="bibtex" class="result-area border-t px-6 py-4">
       <pre
         class="whitespace-pre-wrap break-all rounded-lg border border-blue-500/15 bg-slate-950/80 p-4 font-mono text-[13px] leading-[1.6] text-blue-300"
       >{{ bibtex }}</pre>
@@ -42,14 +42,14 @@
 
     <div
       v-else
-      class="result-area flex min-h-[180px] flex-col items-center justify-center gap-2.5 border-t border-blue-500/20 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_52%),linear-gradient(180deg,rgba(15,23,42,0.22),rgba(15,23,42,0.1))] px-7 pb-6 pt-7"
+      class="result-area empty-state flex min-h-[180px] flex-col items-center justify-center gap-2.5 border-t px-7 pb-6 pt-7"
     >
-      <div class="max-w-[460px] text-center text-sm font-semibold leading-[1.45] text-blue-100/70">
+      <div class="empty-shortcut max-w-[460px] text-center text-sm font-semibold leading-[1.45]">
         Press Enter to resolve · Press Esc to hide
       </div>
       <div
         v-if="!apiKeyConfigured"
-        class="max-w-[500px] text-center text-xs leading-[1.45] text-blue-300/50"
+        class="empty-detail max-w-[500px] text-center text-xs leading-[1.45]"
       >
         Title search works without an API key, but uses shared Semantic Scholar rate limits.
       </div>
@@ -64,7 +64,7 @@
     <!-- Status Bar -->
     <div
       v-if="bibtex"
-      class="status-bar flex items-center justify-between border-t border-blue-500/20 px-6 py-3 text-xs"
+      class="status-bar flex items-center justify-between border-t px-6 py-3 text-xs"
     >
       <div class="flex items-center gap-2">
         <span>Type:</span>
@@ -145,6 +145,33 @@ const copyButtonClass = computed(() => [
   color: var(--text-subtle);
 }
 
+.empty-state {
+  background:
+    radial-gradient(circle at top, var(--accent-soft), transparent 52%),
+    var(--surface-muted-bg);
+}
+
+.empty-shortcut {
+  color: var(--text-muted);
+}
+
+.empty-detail,
+.loading-detail {
+  color: var(--text-subtle);
+}
+
+.loading-state {
+  color: var(--text-muted);
+}
+
+.error-message {
+  color: #ef4444;
+}
+
+.error-hint {
+  color: color-mix(in srgb, #ef4444 78%, var(--text-muted));
+}
+
 .loading-spinner {
   width: 20px;
   height: 20px;
@@ -170,10 +197,22 @@ const copyButtonClass = computed(() => [
   border-radius: 999px;
   background: var(--accent-soft);
   border: 1px solid var(--border-soft);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease,
+    background-color 0.16s ease;
 }
 
 .action-link:hover {
   background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  box-shadow: 0 10px 24px var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.action-link:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .result-area::-webkit-scrollbar {

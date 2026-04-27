@@ -221,19 +221,19 @@ async function openApiKeyDocs() {
   margin-top: 14px;
   padding: 14px;
   border-radius: 12px;
-  border: 1px solid rgba(34, 197, 94, 0.18);
-  background: rgba(20, 83, 45, 0.18);
+  border: 1px solid var(--success-border);
+  background: var(--success-bg);
 }
 
 .configured-title {
-  color: #bbf7d0;
+  color: var(--success-text);
   font-size: 13px;
   font-weight: 700;
 }
 
 .configured-copy {
   margin-top: 4px;
-  color: rgba(220, 252, 231, 0.68);
+  color: var(--success-muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -296,6 +296,11 @@ async function openApiKeyDocs() {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease,
+    filter 0.16s ease,
+    background-color 0.16s ease;
 }
 
 .primary-btn:disabled,
@@ -314,16 +319,45 @@ async function openApiKeyDocs() {
   background: var(--control-bg);
 }
 
+.primary-btn:hover:not(:disabled),
+.secondary-btn:hover:not(:disabled) {
+  box-shadow: 0 10px 24px var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.primary-btn:hover:not(:disabled) {
+  filter: brightness(1.06) saturate(1.08);
+}
+
+.primary-btn:active:not(:disabled),
+.secondary-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
 .danger-inline-btn {
   flex-shrink: 0;
-  border: 1px solid rgba(248, 113, 113, 0.24);
+  border: 1px solid var(--danger-border);
   border-radius: 10px;
   padding: 8px 12px;
-  color: #fecaca;
-  background: rgba(127, 29, 29, 0.32);
+  color: var(--danger-text);
+  background: var(--danger-soft);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease,
+    filter 0.16s ease;
+}
+
+.danger-inline-btn:hover {
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--danger-text) 18%, transparent);
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.danger-inline-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .confirm-backdrop {
@@ -373,10 +407,44 @@ async function openApiKeyDocs() {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease,
+    filter 0.16s ease;
+}
+
+.danger-btn:hover:not(:disabled) {
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.24);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.danger-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .danger-btn:disabled {
   cursor: not-allowed;
   opacity: 0.62;
+}
+
+:global(:root) {
+  --success-bg: rgba(20, 83, 45, 0.18);
+  --success-border: rgba(34, 197, 94, 0.18);
+  --success-text: #bbf7d0;
+  --success-muted: rgba(220, 252, 231, 0.68);
+  --danger-soft: rgba(127, 29, 29, 0.32);
+  --danger-border: rgba(248, 113, 113, 0.24);
+  --danger-text: #fecaca;
+}
+
+:global(:root[data-theme="light"]) {
+  --success-bg: #ecfdf5;
+  --success-border: #86efac;
+  --success-text: #047857;
+  --success-muted: #166534;
+  --danger-soft: #fee2e2;
+  --danger-border: #fca5a5;
+  --danger-text: #b91c1c;
 }
 </style>

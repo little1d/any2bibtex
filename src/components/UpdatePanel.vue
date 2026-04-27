@@ -236,6 +236,18 @@ h2 {
   cursor: pointer;
   font-size: 32px;
   line-height: 1;
+  transition:
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.icon-button:hover {
+  color: var(--text-main);
+  transform: rotate(4deg) scale(1.06);
+}
+
+.icon-button:active {
+  transform: scale(0.96);
 }
 
 .update-body {
@@ -330,6 +342,11 @@ h2 {
   cursor: pointer;
   font-size: 16px;
   font-weight: 800;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease,
+    transform 0.16s ease;
 }
 
 .primary-button {
@@ -342,5 +359,25 @@ h2 {
   border: 1px solid var(--border-soft);
   background: var(--surface-bg);
   color: var(--text-muted);
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  box-shadow: 0 12px 26px var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.primary-button:hover {
+  filter: brightness(1.06) saturate(1.08);
+}
+
+.secondary-button:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border-soft));
+  color: var(--text-main);
+}
+
+.primary-button:active,
+.secondary-button:active {
+  transform: translateY(0) scale(0.98);
 }
 </style>

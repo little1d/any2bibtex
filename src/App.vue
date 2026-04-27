@@ -359,10 +359,24 @@ async function toggleTheme() {
   font-size: 15px;
   line-height: 1;
   -webkit-app-region: no-drag;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.update-toggle:hover {
   border-color: var(--accent);
+  box-shadow: 0 8px 22px var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.theme-toggle:active,
+.update-toggle:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .update-toggle {
@@ -380,9 +394,11 @@ async function toggleTheme() {
   font-size: 17px;
   line-height: 1;
   -webkit-app-region: no-drag;
-}
-
-.update-toggle:hover {
-  border-color: var(--accent);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 </style>
