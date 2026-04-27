@@ -7,6 +7,8 @@ __pycache__/
 # Build outputs
 dist/
 dist-electron/
+src-tauri/target/
+src-tauri/gen/schemas/
 resources/backend/
 backend/build/
 backend/*.spec

@@ -5,12 +5,3 @@ declare module '*.vue' {
   const component: DefineComponent<object, object, unknown>
   export default component
 }
-
-interface ElectronAPI {
-  copyToClipboard: (text: string) => Promise<boolean>
-  hideWindow: () => Promise<boolean>
-}
-
-interface Window {
-  electronAPI?: ElectronAPI
-}

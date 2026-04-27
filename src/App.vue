@@ -47,16 +47,16 @@ import { ref, onMounted, onUnmounted, computed, Ref, watch } from "vue";
 import ApiKeyPanel from "./components/ApiKeyPanel.vue";
 import SearchBar from "./components/SearchBar.vue";
 import ResultCard from "./components/ResultCard.vue";
+import {
+  copyToClipboard,
+  getAppTheme,
+  getSemanticScholarConfig,
+  hideWindow,
+  onThemeChanged,
+  resolveQuery,
+  setAppTheme,
+} from "./services/desktop";
 import { formatBibtex } from "./utils/bibtex";
-
-const API_BASE = "http://127.0.0.1:8765";
-
-interface ResolveResponse {
-  success: boolean;
-  type: string;
-  bibtex: string | null;
-  error: string | null;
-}
 
 const query: Ref<string> = ref("");
 const rawBibtex: Ref<string> = ref("");
@@ -164,10 +164,7 @@ function handleEscape() {
     closeApiKeyPanel();
     return;
   }
-  const api = (window as any).electronAPI;
-  if (api?.hideWindow) {
-    api.hideWindow();
-  }
+  hideWindow();
 }
 
 // Global key handler (Fallback, primary is in main.js)
@@ -182,9 +179,11 @@ onMounted(() => {
   window.addEventListener("keydown", onKeyDown);
   loadApiKeyConfig();
   loadThemeConfig();
-  removeThemeListener = window.electronAPI?.onThemeChanged?.((nextTheme) => {
+  onThemeChanged((nextTheme) => {
     applyTheme(nextTheme);
-  }) ?? null;
+  }).then((unlisten) => {
+    removeThemeListener = unlisten;
+  });
 });
 
 onUnmounted(() => {
@@ -203,10 +202,7 @@ async function handleSearch() {
   copied.value = false;
 
   try {
-    const response = await fetch(
-      `${API_BASE}/resolve?q=${encodeURIComponent(q)}`,
-    );
-    const data: ResolveResponse = await response.json();
+    const data = await resolveQuery(q);
 
     if (data.success && data.bibtex) {
       rawBibtex.value = data.bibtex;
@@ -219,7 +215,7 @@ async function handleSearch() {
     }
   } catch (err) {
     error.value =
-      "Cannot connect to backend. Please ensure Python server is running.";
+      "Resolver failed. Please check your network connection and try again.";
     console.error(err);
   } finally {
     loading.value = false;
@@ -230,13 +226,7 @@ async function copyBibtex() {
   if (!formattedBibtex.value) return;
 
   try {
-    const api = (window as any).electronAPI;
-    // Copy the FORMATTED bibtex to be consistent with what the user sees
-    if (api?.copyToClipboard) {
-      await api.copyToClipboard(formattedBibtex.value);
-    } else {
-      await navigator.clipboard.writeText(formattedBibtex.value);
-    }
+    await copyToClipboard(formattedBibtex.value);
     copied.value = true;
     setTimeout(() => {
       copied.value = false;
@@ -248,9 +238,7 @@ async function copyBibtex() {
 
 async function loadApiKeyConfig() {
   try {
-    const api = (window as any).electronAPI;
-    if (!api?.getSemanticScholarConfig) return;
-    const config = await api.getSemanticScholarConfig();
+    const config = await getSemanticScholarConfig();
     apiKeyConfigured.value = Boolean(config?.hasApiKey);
   } catch (err) {
     console.error("Failed to load Semantic Scholar config:", err);
@@ -280,7 +268,7 @@ function applyTheme(nextTheme: "dark" | "light") {
 
 async function loadThemeConfig() {
   try {
-    const nextTheme = await window.electronAPI?.getAppTheme?.();
+    const nextTheme = await getAppTheme();
     applyTheme(nextTheme === "light" ? "light" : "dark");
   } catch (err) {
     console.error("Failed to load app theme:", err);
@@ -292,7 +280,7 @@ async function toggleTheme() {
   const nextTheme = theme.value === "dark" ? "light" : "dark";
   applyTheme(nextTheme);
   try {
-    const savedTheme = await window.electronAPI?.setAppTheme?.(nextTheme);
+    const savedTheme = await setAppTheme(nextTheme);
     if (savedTheme) {
       applyTheme(savedTheme);
     }

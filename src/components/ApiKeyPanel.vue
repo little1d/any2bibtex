@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { openExternalUrl, saveSemanticScholarConfig } from "../services/desktop";
 
 const API_KEY_DOCS_URL = "https://www.semanticscholar.org/product/api#api-key-form";
 
@@ -108,12 +109,7 @@ async function saveApiKey() {
   savingApiKey.value = true;
 
   try {
-    const api = window.electronAPI;
-    if (!api?.saveSemanticScholarConfig) {
-      emit("error", "Semantic Scholar API key settings are unavailable.");
-      return;
-    }
-    const result = await api.saveSemanticScholarConfig(apiKeyDraft.value);
+    const result = await saveSemanticScholarConfig(apiKeyDraft.value);
     emit("saved", Boolean(result?.hasApiKey));
     emit("close");
   } catch (err) {
@@ -129,12 +125,7 @@ async function removeApiKey() {
   savingApiKey.value = true;
 
   try {
-    const api = window.electronAPI;
-    if (!api?.saveSemanticScholarConfig) {
-      emit("error", "Semantic Scholar API key settings are unavailable.");
-      return;
-    }
-    const result = await api.saveSemanticScholarConfig("");
+    const result = await saveSemanticScholarConfig("");
     emit("saved", Boolean(result?.hasApiKey));
     showRevokeConfirm.value = false;
     emit("close");
@@ -148,12 +139,7 @@ async function removeApiKey() {
 
 async function openApiKeyDocs() {
   try {
-    const api = window.electronAPI;
-    if (api?.openExternalUrl) {
-      await api.openExternalUrl(API_KEY_DOCS_URL);
-      return;
-    }
-    window.open(API_KEY_DOCS_URL, "_blank", "noopener,noreferrer");
+    await openExternalUrl(API_KEY_DOCS_URL);
   } catch (err) {
     console.error("Failed to open Semantic Scholar API key docs:", err);
   }

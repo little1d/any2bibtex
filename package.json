@@ -6,67 +6,23 @@
     "name": "little1d",
     "email": "yzachary1551@gmail.com"
   },
-  "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vue\" \"npm run dev:electron\"",
-    "dev:all": "concurrently \"npm run start:backend\" \"npm run dev:vue\" \"npm run dev:electron\"",
+    "dev": "tauri dev",
     "dev:vue": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build": "vite build",
-    "start:backend": "cd backend && uvicorn main:app --host 127.0.0.1 --port 8765 --reload"
+    "build:app": "tauri build"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "vue": "^3.4.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.16",
-    "concurrently": "^8.2.2",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "vite": "^5.0.0",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.any2bibtex.app",
-    "productName": "any2bibtex",
-    "directories": {
-      "output": "dist-electron",
-      "buildResources": "build"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "resources/backend",
-        "to": "backend",
-        "filter": ["**/*"]
-      },
-      {
-        "from": "build/icon.png",
-        "to": "icon.png"
-      },
-      {
-        "from": "build/tray-icon.png",
-        "to": "tray-icon.png"
-      }
-    ],
-    "mac": {
-      "target": "dmg",
-      "icon": "build/icon.png"
-    },
-    "dmg": {
-      "icon": "build/icon.png"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": ["AppImage", "deb"]
-    }
+    "vite": "^5.0.0"
   }
 }

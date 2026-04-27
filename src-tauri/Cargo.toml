@@ -1,0 +1,34 @@
+[package]
+name = "any2bibtex"
+version = "0.0.4"
+description = "Convert DOI, arXiv ID, or paper title to BibTeX"
+authors = ["little1d"]
+edition = "2021"
+
+[lib]
+name = "any2bibtex_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+arboard = "3"
+dirs = "6"
+open = "5"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+strsim = "0.11"
+tauri = { version = "2", features = ["image-png", "tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+urlencoding = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

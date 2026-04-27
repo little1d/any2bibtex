@@ -1,7 +1,7 @@
 <template>
   <div class="search-section">
     <!-- Drag Region (Top Bar) -->
-    <div class="drag-bar"></div>
+    <div class="drag-bar" data-tauri-drag-region></div>
 
     <div class="input-wrapper">
       <input
