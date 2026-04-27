@@ -292,7 +292,9 @@ async fn search_title_candidates(
                 ("fields", "externalIds,title,authors,year"),
             ]);
 
-        if let Some(api_key) = semantic_scholar_api_key.as_deref().filter(|value| !value.is_empty())
+        if let Some(api_key) = semantic_scholar_api_key
+            .as_deref()
+            .filter(|value| !value.is_empty())
         {
             request = request.header("x-api-key", api_key);
         }

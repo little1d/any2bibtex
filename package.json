@@ -10,10 +10,14 @@
     "dev": "tauri dev",
     "dev:vue": "vite",
     "build": "vite build",
-    "build:app": "tauri build"
+    "build:app": "tauri build",
+    "build:release": "tauri build --config src-tauri/tauri.release.conf.json",
+    "release:manifest": "node scripts/create-updater-manifest.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "vue": "^3.4.0"
   },
   "devDependencies": {

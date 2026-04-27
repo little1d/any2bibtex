@@ -186,7 +186,15 @@ fn build_tray_menu<R: tauri::Runtime, M: Manager<R>>(
 
     Menu::with_items(
         manager,
-        &[&show, &hide, &separator_a, &dark, &light, &separator_b, &quit],
+        &[
+            &show,
+            &hide,
+            &separator_a,
+            &dark,
+            &light,
+            &separator_b,
+            &quit,
+        ],
     )
 }
 
@@ -231,6 +239,8 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = window.set_background_color(Some(Color(0, 0, 0, 0)));

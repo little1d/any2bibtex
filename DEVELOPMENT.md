@@ -83,6 +83,7 @@ Semantic Scholar API keys currently have a limit of `1 request/second`, cumulati
 npm run build      # Build the Vue frontend
 cargo check        # Check the Rust backend from src-tauri/
 npm run build:app  # Build the Tauri desktop app
+npm run build:release  # Build installers plus signed updater artifacts
 ```
 
 If `npm run build:app` fails because `cargo` is not on `PATH`, run:
@@ -106,6 +107,30 @@ Typical outputs:
 - Linux: `src-tauri/target/release/bundle/appimage/*.AppImage` and `src-tauri/target/release/bundle/deb/*.deb`
 
 macOS release builds use ad-hoc signing via `bundle.macOS.signingIdentity = "-"`. This keeps downloaded Apple Silicon builds code-signed, but it is not a substitute for Developer ID signing and notarization.
+
+## Automatic Updates
+
+any2bibtex uses the Tauri updater plugin. Release builds publish `latest.json` plus signed updater artifacts to GitHub Releases.
+
+Updater signing uses a long-lived key pair:
+
+- Public key: committed in `src-tauri/tauri.conf.json`.
+- Private key: keep secret and store in GitHub Actions as `TAURI_SIGNING_PRIVATE_KEY`.
+- Password: optional; this project currently uses an empty password, so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` can be empty.
+
+The local private key generated for this project is stored outside the repository at:
+
+```bash
+~/.tauri/any2bibtex.key
+```
+
+To configure GitHub Actions, add the private key content as a repository secret:
+
+```bash
+cat ~/.tauri/any2bibtex.key
+```
+
+The normal local package command remains `npm run build:app`. Use `npm run build:release` only when `TAURI_SIGNING_PRIVATE_KEY` is configured, because updater artifacts cannot be generated without the private signing key.
 
 On macOS, if the final DMG script fails in a sandboxed terminal but `.app` is generated, rerun the generated script locally:
 
@@ -146,7 +171,8 @@ Before creating a release:
 1. Ensure `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md` are up to date.
 2. Run `npm run build`.
 3. Run `cd src-tauri && cargo check`.
-4. Run `npm run build:app` on at least one local platform.
+4. Ensure the GitHub repository secret `TAURI_SIGNING_PRIVATE_KEY` is configured.
+5. Run `npm run build:app` on at least one local platform.
 
 Create and push a release tag:
 

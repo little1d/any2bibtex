@@ -70,6 +70,7 @@
 
 - [x] Improve title search matching quality and fallback behavior
 - [x] Migrate from Electron + Python backend to Tauri + Rust resolver
+- [ ] In-app automatic updates with download progress, restart prompt, and update-success confirmation
 - [ ] Similarity-based reference search (input abstract → find related papers)
 - [ ] Improve cross-platform packaging and signing
 

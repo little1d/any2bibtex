@@ -81,7 +81,10 @@ pub fn normalize_semantic_scholar_api_key(value: &str) -> String {
 
 fn settings_path() -> io::Result<PathBuf> {
     let base = dirs::config_dir().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::NotFound, "could not determine config directory")
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            "could not determine config directory",
+        )
     })?;
     Ok(base.join("any2bibtex").join("settings.json"))
 }

@@ -9,6 +9,14 @@
       >
         {{ theme === "dark" ? "☀" : "☾" }}
       </button>
+      <button
+        class="update-toggle"
+        aria-label="Check for updates"
+        title="Check for updates"
+        @click="openUpdatePanel"
+      >
+        ↻
+      </button>
 
       <SearchBar
         v-model="query"
@@ -38,6 +46,11 @@
         @saved="handleApiKeySaved"
         @error="handleApiKeyError"
       />
+
+      <UpdatePanel
+        v-if="showUpdatePanel"
+        @close="closeUpdatePanel"
+      />
     </div>
   </div>
 </template>
@@ -47,6 +60,7 @@ import { ref, onMounted, onUnmounted, computed, Ref, watch } from "vue";
 import ApiKeyPanel from "./components/ApiKeyPanel.vue";
 import SearchBar from "./components/SearchBar.vue";
 import ResultCard from "./components/ResultCard.vue";
+import UpdatePanel from "./components/UpdatePanel.vue";
 import {
   copyToClipboard,
   getAppTheme,
@@ -56,6 +70,7 @@ import {
   resolveQuery,
   setAppTheme,
 } from "./services/desktop";
+import { hasCompletedUpdateMarker } from "./services/updater";
 import { formatBibtex } from "./utils/bibtex";
 
 const query: Ref<string> = ref("");
@@ -67,6 +82,7 @@ const error: Ref<string> = ref("");
 const copied: Ref<boolean> = ref(false);
 const apiKeyConfigured: Ref<boolean> = ref(false);
 const showApiKeyPanel: Ref<boolean> = ref(false);
+const showUpdatePanel: Ref<boolean> = ref(false);
 const theme: Ref<"dark" | "light"> = ref("dark");
 let removeThemeListener: (() => void) | null = null;
 
@@ -160,6 +176,10 @@ function handleGlobalClick() {
 }
 
 function handleEscape() {
+  if (showUpdatePanel.value) {
+    closeUpdatePanel();
+    return;
+  }
   if (showApiKeyPanel.value) {
     closeApiKeyPanel();
     return;
@@ -179,6 +199,9 @@ onMounted(() => {
   window.addEventListener("keydown", onKeyDown);
   loadApiKeyConfig();
   loadThemeConfig();
+  if (hasCompletedUpdateMarker()) {
+    showUpdatePanel.value = true;
+  }
   onThemeChanged((nextTheme) => {
     applyTheme(nextTheme);
   }).then((unlisten) => {
@@ -251,6 +274,14 @@ function openApiKeyPanel() {
 
 function closeApiKeyPanel() {
   showApiKeyPanel.value = false;
+}
+
+function openUpdatePanel() {
+  showUpdatePanel.value = true;
+}
+
+function closeUpdatePanel() {
+  showUpdatePanel.value = false;
 }
 
 function handleApiKeySaved(hasApiKey: boolean) {
@@ -331,6 +362,27 @@ async function toggleTheme() {
 }
 
 .theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.update-toggle {
+  position: absolute;
+  top: 8px;
+  right: 50px;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  background: var(--control-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  -webkit-app-region: no-drag;
+}
+
+.update-toggle:hover {
   border-color: var(--accent);
 }
 </style>
