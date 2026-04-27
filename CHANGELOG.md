@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **Package Size** - Removed the bundled Python backend and Electron runtime path, substantially reducing local macOS app and DMG size.
+- **Package Size** - Removed the bundled Python backend and Electron runtime path, reducing the packaged app from 120+ MB to under 10 MB, roughly a 92%+ size reduction.
 - **Development Workflow** - Replaced the separate FastAPI backend workflow with a single `npm run dev` Tauri workflow.
 - **Window Transparency** - Enabled macOS transparent-window support through Tauri `macOSPrivateApi`.
 
