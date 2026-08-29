@@ -16,7 +16,7 @@
         "label": "main",
         "title": "any2bibtex",
         "width": 684,
-        "height": 640,
+        "height": 480,
         "resizable": false,
         "fullscreen": false,
         "decorations": false,
@@ -24,7 +24,7 @@
         "shadow": false,
         "backgroundColor": "#00000000",
         "alwaysOnTop": false,
-        "visible": true
+        "visible": false
       }
     ],
     "security": {
@@ -34,7 +34,7 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "nsis", "appimage", "deb"],
-    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "icon": ["icons/icon.png", "icons/icon.icns", "icons/icon.ico"],
     "resources": ["icons/tray-icon.png"],
     "macOS": {
       "signingIdentity": "-"

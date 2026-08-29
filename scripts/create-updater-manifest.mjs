@@ -1,36 +1,67 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const repo = "little1d/any2bibtex";
-const releaseDir = path.resolve("release-files");
-const changelogPath = path.resolve("CHANGELOG.md");
+const repository = process.env.GITHUB_REPOSITORY || "little1d/any2bibtex";
+const releaseDir = path.resolve(process.env.RELEASE_DIR || "release-files");
+const changelogPath = path.resolve(process.env.CHANGELOG_PATH || "CHANGELOG.md");
 const version = process.env.RELEASE_VERSION?.replace(/^v/, "");
 
 if (!version) {
-  throw new Error("RELEASE_VERSION is required, for example RELEASE_VERSION=0.0.5");
+  throw new Error("RELEASE_VERSION is required, for example RELEASE_VERSION=0.0.7");
 }
 
-async function listFiles(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = await Promise.all(
+const platformArtifacts = [
+  {
+    key: "darwin-aarch64",
+    label: "macOS Apple Silicon",
+    matches: (name) => name.endsWith("_aarch64.app.tar.gz"),
+  },
+  {
+    key: "darwin-x86_64",
+    label: "macOS Intel",
+    matches: (name) => name.endsWith("_x64.app.tar.gz"),
+  },
+  {
+    key: "windows-x86_64",
+    label: "Windows x64",
+    matches: (name) => name.endsWith("_x64-setup.exe"),
+  },
+  {
+    key: "linux-x86_64",
+    label: "Linux x64",
+    matches: (name) => name.endsWith("_amd64.AppImage"),
+  },
+  {
+    key: "linux-aarch64",
+    label: "Linux ARM64",
+    matches: (name) => name.endsWith("_arm64.AppImage"),
+  },
+];
+
+async function listFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nestedFiles = await Promise.all(
     entries.map(async (entry) => {
-      const fullPath = path.join(dir, entry.name);
+      const fullPath = path.join(directory, entry.name);
       return entry.isDirectory() ? listFiles(fullPath) : [fullPath];
     }),
   );
-  return files.flat();
+  return nestedFiles.flat();
 }
 
-function findArtifact(files, label, matcher) {
-  const match = files.find((file) => matcher(path.basename(file)));
-  if (!match) {
+function findArtifact(files, platform) {
+  const matches = files.filter((file) => platform.matches(path.basename(file)));
+  if (matches.length !== 1) {
     const available = files
       .map((file) => path.relative(releaseDir, file))
       .sort()
       .join("\n");
-    throw new Error(`Missing updater artifact for ${label}. Available files:\n${available}`);
+    throw new Error(
+      `Expected one updater artifact for ${platform.label}, found ${matches.length}.\n` +
+        `Available files:\n${available}`,
+    );
   }
-  return match;
+  return matches[0];
 }
 
 async function readSignature(artifactPath) {
@@ -39,10 +70,10 @@ async function readSignature(artifactPath) {
 
 function releaseUrl(filePath) {
   const filename = encodeURIComponent(path.basename(filePath));
-  return `https://github.com/${repo}/releases/latest/download/${filename}`;
+  return `https://github.com/${repository}/releases/latest/download/${filename}`;
 }
 
-async function readLatestNotes() {
+async function readReleaseNotes() {
   const changelog = await readFile(changelogPath, "utf8");
   const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = changelog.match(
@@ -52,35 +83,21 @@ async function readLatestNotes() {
 }
 
 const files = await listFiles(releaseDir);
+const platforms = {};
 
-const macArtifact = findArtifact(files, "macOS .app.tar.gz", (name) =>
-  name.endsWith(".app.tar.gz"),
-);
-const windowsArtifact = findArtifact(files, "Windows .exe", (name) =>
-  name.endsWith(".exe"),
-);
-const linuxArtifact = findArtifact(files, "Linux .AppImage", (name) =>
-  name.endsWith(".AppImage"),
-);
+for (const platform of platformArtifacts) {
+  const artifact = findArtifact(files, platform);
+  platforms[platform.key] = {
+    signature: await readSignature(artifact),
+    url: releaseUrl(artifact),
+  };
+}
 
 const manifest = {
   version,
-  notes: await readLatestNotes(),
+  notes: await readReleaseNotes(),
   pub_date: new Date().toISOString(),
-  platforms: {
-    "darwin-aarch64": {
-      signature: await readSignature(macArtifact),
-      url: releaseUrl(macArtifact),
-    },
-    "windows-x86_64": {
-      signature: await readSignature(windowsArtifact),
-      url: releaseUrl(windowsArtifact),
-    },
-    "linux-x86_64": {
-      signature: await readSignature(linuxArtifact),
-      url: releaseUrl(linuxArtifact),
-    },
-  },
+  platforms,
 };
 
 await writeFile(path.join(releaseDir, "release-notes.md"), `${manifest.notes}\n`);

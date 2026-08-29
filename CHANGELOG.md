@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Automatic Update Checks** - Added a silent launch-time update check with an in-app availability indicator.
+- **Release Coverage** - Added Intel and Apple Silicon macOS builds, x64 and ARM64 Linux builds, release checksums, and release-manifest tests.
+- **Platform Signing** - Added conditional Apple Developer ID notarization and Azure Artifact Signing support in CI.
+- **Menu Bar Controls** - Added settings, update checks, launch-at-login, appearance, repository, and native About actions.
+
+### Changed
+
+- **Interface** - Rebuilt the desktop interface around a compact command-panel layout with consistent Lucide icons, status feedback, and light/dark color tokens.
+- **App Icon** - Replaced the blurred legacy artwork with a crisp document-and-braces identity and matching monochrome tray icon.
+- **Update Experience** - Added retry handling, byte-level download progress, protected install state, and safer post-restart confirmation.
+- **Release Validation** - Added a version consistency gate across npm, Cargo, Tauri, and release tags.
+
 ## [0.0.6] - 2026-04-27
 
 ### Added
