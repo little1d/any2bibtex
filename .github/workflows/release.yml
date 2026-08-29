@@ -197,23 +197,34 @@ jobs:
             exit 1
           fi
 
+          signing_enabled=false
           if [[ -n "$APPLE_CERTIFICATE" || -n "$APPLE_SIGNING_IDENTITY_SECRET" ]]; then
             if [[ -z "$APPLE_CERTIFICATE" || -z "$APPLE_CERTIFICATE_PASSWORD" || -z "$APPLE_SIGNING_IDENTITY_SECRET" ]]; then
               echo "Apple signing is only partially configured." >&2
               exit 1
             fi
-            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
+
+            certificate_path="$RUNNER_TEMP/apple-certificate.p12"
+            if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate_path" &&
+              (openssl pkcs12 -in "$certificate_path" -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -noout >/dev/null 2>&1 ||
+                openssl pkcs12 -legacy -in "$certificate_path" -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -noout >/dev/null 2>&1); then
+              signing_enabled=true
+              echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
+            else
+              echo "::warning::Apple certificate validation failed; using ad-hoc signing."
+            fi
           else
-            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
             echo "::warning::Apple signing is not configured; using ad-hoc signing."
           fi
 
-          if [[ -z "$APPLE_CERTIFICATE" && ( "$api_credentials" -eq 3 || "$apple_id_credentials" -eq 3 ) ]]; then
-            echo "Notarization credentials require an Apple signing certificate." >&2
-            exit 1
+          if [[ "$signing_enabled" != true ]]; then
+            for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PRIVATE_KEY APPLE_API_KEY_PATH; do
+              echo "$name=" >> "$GITHUB_ENV"
+            done
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
           fi
 
-          if [[ "$api_credentials" -eq 3 ]]; then
+          if [[ "$signing_enabled" == true && "$api_credentials" -eq 3 ]]; then
             key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
             printf '%s' "$APPLE_API_KEY_PRIVATE_KEY" > "$key_path"
             chmod 600 "$key_path"
@@ -221,7 +232,19 @@ jobs:
           fi
 
       - name: Build macOS bundle
-        run: npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg
+        shell: bash
+        run: |
+          if ! npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg; then
+            if [[ "$APPLE_SIGNING_IDENTITY" == "-" ]]; then
+              exit 1
+            fi
+
+            echo "::warning::Apple signing failed; retrying with ad-hoc signing."
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+            unset APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PRIVATE_KEY APPLE_API_KEY_PATH
+            export APPLE_SIGNING_IDENTITY="-"
+            npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg
+          fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
