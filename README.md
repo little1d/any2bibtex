@@ -31,6 +31,8 @@
 - 📋 **One-Click Copy** — Copy to clipboard instantly
 - 🎨 **Spotlight UI** — Minimal, keyboard-friendly interface
 - ⌨️ **Global Shortcut** — `Option+Space` (macOS) / `Alt+Space` (Windows/Linux)
+- **Menu Bar Controls** — Open the app, check for updates, switch themes, or launch at login
+- **Automatic Updates** — Detect, download, install, and restart from inside the app
 
 ![any2bibtex demo](assets/demo.gif)
 
@@ -70,9 +72,9 @@
 
 - [x] Improve title search matching quality and fallback behavior
 - [x] Migrate from Electron + Python backend to Tauri + Rust resolver
-- [ ] In-app automatic updates with download progress, restart prompt, and update-success confirmation
+- [x] In-app automatic updates with download progress, restart prompt, and update-success confirmation
 - [ ] Similarity-based reference search (input abstract → find related papers)
-- [ ] Improve cross-platform packaging and signing
+- [x] Improve cross-platform packaging and signing
 
 ### ⭐ Star History
 

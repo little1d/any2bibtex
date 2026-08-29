@@ -1,69 +1,150 @@
 <template>
-  <section class="update-panel">
-    <header class="update-header">
-      <div class="update-heading">
-        <div class="update-icon">{{ status === "success" ? "✓" : "↻" }}</div>
-        <h2>{{ title }}</h2>
-      </div>
-      <button class="icon-button" type="button" aria-label="Close update panel" @click="close">
-        ×
+  <section class="panel-view">
+    <header class="panel-header">
+      <button
+        class="icon-button"
+        type="button"
+        :disabled="status === 'downloading'"
+        aria-label="Back"
+        title="Back"
+        @click="close"
+      >
+        <ArrowLeft :size="18" :stroke-width="1.8" aria-hidden="true" />
       </button>
+      <div class="panel-heading">
+        <RefreshCw
+          :class="{ spin: status === 'checking' }"
+          :size="17"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
+        <h2>Software update</h2>
+      </div>
+      <span v-if="currentVersion" class="current-version">v{{ currentVersion }}</span>
     </header>
 
-    <div class="update-body">
-      <p class="version" v-if="targetVersion">v{{ targetVersion }}</p>
+    <div
+      class="panel-body"
+      :class="{ centered: !notes && status !== 'downloading' }"
+    >
+      <div class="status-icon" :data-status="status">
+        <LoaderCircle
+          v-if="status === 'checking' || status === 'downloading'"
+          class="spin"
+          :size="24"
+          :stroke-width="1.7"
+          aria-hidden="true"
+        />
+        <Download
+          v-else-if="status === 'available'"
+          :size="24"
+          :stroke-width="1.7"
+          aria-hidden="true"
+        />
+        <RotateCcw
+          v-else-if="status === 'ready'"
+          :size="24"
+          :stroke-width="1.7"
+          aria-hidden="true"
+        />
+        <CircleAlert
+          v-else-if="status === 'error'"
+          :size="24"
+          :stroke-width="1.7"
+          aria-hidden="true"
+        />
+        <CircleCheck v-else :size="24" :stroke-width="1.7" aria-hidden="true" />
+      </div>
+
+      <p v-if="targetVersion && status !== 'current'" class="target-version">
+        v{{ targetVersion }}
+      </p>
+      <h3>{{ title }}</h3>
       <p class="summary">{{ summary }}</p>
 
       <div v-if="status === 'downloading'" class="progress-block">
-        <div class="progress-track">
-          <div class="progress-bar" :style="{ width: progressWidth }"></div>
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-label="Update download"
+          :aria-valuenow="progress.percent ?? undefined"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <div
+            class="progress-bar"
+            :class="{ indeterminate: progress.percent === null }"
+            :style="{ width: progressWidth }"
+          ></div>
         </div>
-        <p class="progress-label">
-          {{ progress === null ? "Downloading update..." : `Downloading... ${progress}%` }}
-        </p>
+        <div class="progress-meta">
+          <span>{{ progressLabel }}</span>
+          <span v-if="progress.percent !== null">{{ progress.percent }}%</span>
+        </div>
       </div>
 
-      <div v-if="status === 'ready'" class="ready-banner">
-        v{{ targetVersion }} is ready. Restart to finish the update.
-      </div>
-
-      <div v-if="status === 'success'" class="ready-banner">
-        Updated from v{{ completedUpdate?.from }} to v{{ completedUpdate?.to }}.
-      </div>
-
-      <div v-if="notes" class="notes">
-        <h3>Release Notes</h3>
+      <div v-if="notes && ['available', 'ready'].includes(status)" class="notes">
+        <span class="notes-label">Release notes</span>
         <pre>{{ notes }}</pre>
       </div>
     </div>
 
-    <footer class="update-actions">
-      <button class="secondary-button" type="button" @click="close">
-        {{ status === "success" ? "Done" : "Later" }}
+    <footer class="panel-actions">
+      <button
+        v-if="status !== 'downloading'"
+        class="button secondary"
+        type="button"
+        @click="close"
+      >
+        {{ closeLabel }}
       </button>
       <button
         v-if="status === 'available'"
-        class="primary-button"
+        class="button primary"
         type="button"
         @click="installUpdate"
       >
-        Update Now
+        <Download :size="14" :stroke-width="1.9" aria-hidden="true" />
+        Install update
       </button>
       <button
-        v-if="status === 'ready'"
-        class="primary-button"
+        v-else-if="status === 'ready'"
+        class="button primary"
         type="button"
         @click="restart"
       >
-        Restart Now
+        <RotateCcw :size="14" :stroke-width="1.9" aria-hidden="true" />
+        Restart
+      </button>
+      <button
+        v-else-if="status === 'error'"
+        class="button primary"
+        type="button"
+        @click="checkUpdate"
+      >
+        <RefreshCw :size="14" :stroke-width="1.9" aria-hidden="true" />
+        Try again
+      </button>
+      <button v-else-if="status === 'downloading'" class="button secondary" type="button" disabled>
+        <LoaderCircle class="spin" :size="14" :stroke-width="1.9" aria-hidden="true" />
+        Installing
       </button>
     </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import {
+  ArrowLeft,
+  CircleAlert,
+  CircleCheck,
+  Download,
+  LoaderCircle,
+  RefreshCw,
+  RotateCcw,
+} from "@lucide/vue";
 import type { Update } from "@tauri-apps/plugin-updater";
+import { computed, onMounted, ref, shallowRef } from "vue";
 import {
   checkForAppUpdate,
   consumeCompletedUpdate,
@@ -72,12 +153,26 @@ import {
   markUpdateReady,
   relaunchApp,
   type CompletedUpdate,
+  type UpdateProgress,
 } from "../services/updater";
 
-type UpdateStatus = "checking" | "available" | "downloading" | "ready" | "current" | "error" | "success";
+type UpdateStatus =
+  | "checking"
+  | "available"
+  | "downloading"
+  | "ready"
+  | "current"
+  | "error"
+  | "success";
+
+const props = defineProps<{
+  initialUpdate?: Update | null;
+}>();
 
 const emit = defineEmits<{
-  close: [];
+  (event: "close"): void;
+  (event: "updateFound", update: Update | null): void;
+  (event: "busyChange", busy: boolean): void;
 }>();
 
 const status = ref<UpdateStatus>("checking");
@@ -85,73 +180,99 @@ const currentVersion = ref("");
 const targetVersion = ref("");
 const notes = ref("");
 const errorMessage = ref("");
-const progress = ref<number | null>(null);
-const updateRef = ref<Update | null>(null);
+const progress = ref<UpdateProgress>({
+  downloaded: 0,
+  total: null,
+  percent: null,
+});
+const updateRef = shallowRef<Update | null>(null);
 const completedUpdate = ref<CompletedUpdate | null>(null);
 
 const title = computed(() => {
-  if (status.value === "success") return "Update Complete";
-  if (status.value === "current") return "You're Up to Date";
-  if (status.value === "error") return "Update Check Failed";
-  return "New Version";
+  if (status.value === "checking") return "Checking for updates";
+  if (status.value === "available") return "Update available";
+  if (status.value === "downloading") return "Downloading update";
+  if (status.value === "ready") return "Ready to restart";
+  if (status.value === "current") return "You're up to date";
+  if (status.value === "success") return "Update complete";
+  return "Update check failed";
 });
 
 const summary = computed(() => {
-  if (status.value === "checking") return "Checking for updates...";
-  if (status.value === "available") {
-    return `Current version v${currentVersion.value}, new version is available.`;
+  if (status.value === "checking") return "Looking for the latest release.";
+  if (status.value === "available") return "A new version is ready to install.";
+  if (status.value === "downloading") return "Keep the app open while the update is installed.";
+  if (status.value === "ready") return "Restart the app to finish the update.";
+  if (status.value === "current") return `Version ${currentVersion.value} is the latest release.`;
+  if (status.value === "success") {
+    return `Updated from ${completedUpdate.value?.from} to ${completedUpdate.value?.to}.`;
   }
-  if (status.value === "downloading") {
-    return `Current version v${currentVersion.value}, downloading v${targetVersion.value}.`;
-  }
-  if (status.value === "ready") {
-    return `Current version v${currentVersion.value}, v${targetVersion.value} has been installed.`;
-  }
-  if (status.value === "current") {
-    return `You are already using the latest version v${currentVersion.value}.`;
-  }
-  if (status.value === "success") return "The update was installed successfully.";
-  return errorMessage.value || "Please try again later.";
+  return errorMessage.value || "The update service could not be reached.";
+});
+
+const closeLabel = computed(() => {
+  return status.value === "available" || status.value === "ready" ? "Later" : "Done";
 });
 
 const progressWidth = computed(() => {
-  if (progress.value === null) return "42%";
-  return `${Math.min(Math.max(progress.value, 0), 100)}%`;
+  return progress.value.percent === null ? "36%" : `${progress.value.percent}%`;
+});
+
+const progressLabel = computed(() => {
+  const downloaded = formatBytes(progress.value.downloaded);
+  if (!progress.value.total) return downloaded ? `${downloaded} downloaded` : "Starting download";
+  return `${downloaded} of ${formatBytes(progress.value.total)}`;
 });
 
 onMounted(async () => {
-  currentVersion.value = await getCurrentAppVersion();
-  completedUpdate.value = consumeCompletedUpdate(currentVersion.value);
+  try {
+    currentVersion.value = await getCurrentAppVersion();
+    completedUpdate.value = consumeCompletedUpdate(currentVersion.value);
 
-  if (completedUpdate.value) {
-    targetVersion.value = completedUpdate.value.to;
-    status.value = "success";
-    return;
+    if (completedUpdate.value) {
+      targetVersion.value = completedUpdate.value.to;
+      status.value = "success";
+      return;
+    }
+
+    if (props.initialUpdate) {
+      applyUpdate(props.initialUpdate);
+      return;
+    }
+
+    await checkUpdate();
+  } catch (error) {
+    setError(error, "Unable to read the current app version.");
   }
-
-  await checkUpdate();
 });
+
+function applyUpdate(update: Update) {
+  updateRef.value = update;
+  targetVersion.value = update.version;
+  notes.value = update.body || "";
+  status.value = "available";
+  emit("updateFound", update);
+}
 
 async function checkUpdate() {
   status.value = "checking";
   errorMessage.value = "";
+  progress.value = { downloaded: 0, total: null, percent: null };
 
   try {
+    if (!currentVersion.value) {
+      currentVersion.value = await getCurrentAppVersion();
+    }
     const update = await checkForAppUpdate();
     if (!update) {
       status.value = "current";
       targetVersion.value = currentVersion.value;
+      emit("updateFound", null);
       return;
     }
-
-    updateRef.value = update;
-    targetVersion.value = update.version;
-    notes.value = update.body || "";
-    status.value = "available";
+    applyUpdate(update);
   } catch (error) {
-    status.value = "error";
-    errorMessage.value =
-      error instanceof Error ? error.message : "Unable to check for updates.";
+    setError(error, "Unable to check for updates.");
   }
 }
 
@@ -159,7 +280,8 @@ async function installUpdate() {
   if (!updateRef.value) return;
 
   status.value = "downloading";
-  progress.value = null;
+  progress.value = { downloaded: 0, total: null, percent: null };
+  emit("busyChange", true);
 
   try {
     await downloadAndInstallUpdate(updateRef.value, (nextProgress) => {
@@ -168,216 +290,292 @@ async function installUpdate() {
     markUpdateReady(currentVersion.value, targetVersion.value);
     status.value = "ready";
   } catch (error) {
-    status.value = "error";
-    errorMessage.value =
-      error instanceof Error ? error.message : "Unable to install the update.";
+    setError(error, "Unable to install the update.");
+  } finally {
+    emit("busyChange", false);
   }
 }
 
 async function restart() {
-  await relaunchApp();
+  emit("busyChange", true);
+  try {
+    await relaunchApp();
+  } catch (error) {
+    emit("busyChange", false);
+    setError(error, "Unable to restart the app.");
+  }
 }
 
 function close() {
-  emit("close");
+  if (status.value !== "downloading") emit("close");
+}
+
+function setError(error: unknown, fallback: string) {
+  console.error(fallback, error);
+  status.value = "error";
+  errorMessage.value = fallback;
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** unitIndex;
+  return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
 }
 </script>
 
 <style scoped>
-.update-panel {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
+.panel-view {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  overflow: hidden;
-  border-radius: 16px;
-  background: var(--app-bg);
   color: var(--text-main);
 }
 
-.update-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 32px 22px;
-  border-bottom: 1px solid var(--border-soft);
-}
-
-.update-heading {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.update-icon {
+.panel-header {
   display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #2563eb, #0ea5e9 52%, #14b8a6);
-  color: white;
-  font-size: 24px;
-  font-weight: 800;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-bg);
+}
+
+.panel-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .icon-button {
-  border: 0;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 32px;
-  line-height: 1;
-  transition:
-    color 0.16s ease,
-    transform 0.16s ease;
 }
 
-.icon-button:hover {
+.icon-button:hover:not(:disabled) {
+  background: var(--surface-raised);
   color: var(--text-main);
-  transform: rotate(4deg) scale(1.06);
 }
 
-.icon-button:active {
-  transform: scale(0.96);
+.icon-button:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
-.update-body {
+.current-version {
+  color: var(--text-subtle);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+}
+
+.panel-body {
+  display: flex;
+  min-height: 0;
   flex: 1;
-  overflow: hidden;
-  padding: 28px 32px;
+  flex-direction: column;
+  overflow: auto;
+  padding: 30px 32px 24px;
 }
 
-.version {
-  margin-bottom: 12px;
+.panel-body.centered {
+  justify-content: center;
+  padding-bottom: 68px;
+}
+
+.status-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-bg);
   color: var(--accent);
+}
+
+.status-icon[data-status="error"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.status-icon[data-status="current"],
+.status-icon[data-status="success"] {
+  color: var(--success);
+}
+
+.status-icon[data-status="ready"] {
+  color: var(--warning);
+}
+
+.target-version {
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+h3 {
+  color: var(--text-main);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .summary {
+  max-width: 470px;
+  margin-top: 7px;
   color: var(--text-muted);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .progress-block {
-  margin: 28px 0 24px;
+  margin-top: 24px;
 }
 
 .progress-track {
   width: 100%;
-  height: 9px;
+  height: 5px;
   overflow: hidden;
-  border-radius: 999px;
-  background: var(--control-bg);
+  border-radius: 4px;
+  background: var(--surface-raised);
 }
 
 .progress-bar {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2563eb, #14b8a6);
+  background: var(--accent-strong);
   transition: width 160ms ease;
 }
 
-.progress-label {
-  margin-top: 16px;
-  text-align: center;
-  color: var(--text-subtle);
-  font-weight: 700;
+.progress-bar.indeterminate {
+  animation: progress-slide 1.1s ease-in-out infinite alternate;
 }
 
-.ready-banner {
-  margin: 24px 0;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
-  font-weight: 800;
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--text-subtle);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
 }
 
 .notes {
-  margin-top: 28px;
-  padding-top: 22px;
+  margin-top: 24px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-soft);
 }
 
-.notes h3 {
-  margin: 0 0 12px;
-  font-size: 18px;
+.notes-label {
+  color: var(--text-subtle);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
 }
 
 .notes pre {
-  max-height: 210px;
+  max-height: 164px;
   overflow: auto;
+  margin-top: 9px;
   white-space: pre-wrap;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 15px;
+  font-size: 11px;
   line-height: 1.55;
 }
 
-.update-actions {
+.panel-actions {
   display: flex;
+  min-height: 52px;
+  align-items: center;
   justify-content: flex-end;
-  gap: 14px;
-  padding: 22px 32px;
+  gap: 8px;
+  padding: 0 14px;
   border-top: 1px solid var(--border-soft);
-  background: var(--surface-muted-bg);
-}
-
-.primary-button,
-.secondary-button {
-  min-width: 112px;
-  border-radius: 14px;
-  padding: 12px 18px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 800;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    filter 0.16s ease,
-    transform 0.16s ease;
-}
-
-.primary-button {
-  border: 0;
-  background: linear-gradient(135deg, #2563eb, #0891b2);
-  color: white;
-}
-
-.secondary-button {
-  border: 1px solid var(--border-soft);
   background: var(--surface-bg);
+}
+
+.button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.button.primary {
+  background: var(--accent-strong);
+  color: #ffffff;
+}
+
+.button.secondary {
+  border-color: var(--border-soft);
+  background: var(--surface-raised);
   color: var(--text-muted);
 }
 
-.primary-button:hover,
-.secondary-button:hover {
-  box-shadow: 0 12px 26px var(--accent-soft);
-  transform: translateY(-1px);
+.button:hover:not(:disabled) {
+  filter: brightness(1.05);
 }
 
-.primary-button:hover {
-  filter: brightness(1.06) saturate(1.08);
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
-.secondary-button:hover {
-  border-color: color-mix(in srgb, var(--accent) 38%, var(--border-soft));
-  color: var(--text-main);
+.button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
-.primary-button:active,
-.secondary-button:active {
-  transform: translateY(0) scale(0.98);
+.spin {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-80%);
+  }
+  to {
+    transform: translateX(180%);
+  }
 }
 </style>

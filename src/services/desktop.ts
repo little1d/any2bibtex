@@ -66,6 +66,14 @@ export async function onThemeChanged(callback: (theme: AppTheme) => void): Promi
   return listen<AppTheme>("theme-changed", (event) => callback(event.payload));
 }
 
+export async function onOpenSettingsRequested(callback: () => void): Promise<UnlistenFn> {
+  return listen("open-settings-panel", callback);
+}
+
+export async function onOpenUpdateRequested(callback: () => void): Promise<UnlistenFn> {
+  return listen("open-update-panel", callback);
+}
+
 export async function startWindowDrag(): Promise<void> {
   await getCurrentWindow().startDragging();
 }

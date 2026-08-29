@@ -1,51 +1,55 @@
 <template>
-  <div class="search-section">
-    <!-- Drag Region (Top Bar) -->
-    <div class="drag-bar" data-tauri-drag-region @mousedown="startDrag"></div>
-
-    <div class="input-wrapper">
-      <input
-        ref="inputRef"
-        :value="modelValue"
-        @input="
-          $emit('update:modelValue', ($event.target as HTMLInputElement).value)
-        "
-        type="text"
-        class="search-input"
-        placeholder="Enter DOI, arXiv ID, or paper title..."
-        @keyup.enter="$emit('search')"
-        @keydown.esc="handleEsc"
-        autofocus
+  <form class="search-form" @submit.prevent="emit('search')">
+    <Search :size="19" :stroke-width="1.8" aria-hidden="true" />
+    <input
+      ref="inputRef"
+      :value="modelValue"
+      type="text"
+      class="search-input"
+      placeholder="DOI, arXiv ID, or paper title"
+      autocomplete="off"
+      spellcheck="false"
+      autofocus
+      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @keydown.esc="emit('escape')"
+    />
+    <span class="input-type" :class="{ invisible: !modelValue.trim() }">{{ inputType }}</span>
+    <button
+      class="submit-button"
+      type="submit"
+      :disabled="!modelValue.trim() || loading"
+      aria-label="Resolve paper"
+      title="Resolve paper"
+    >
+      <LoaderCircle
+        v-if="loading"
+        class="spin"
+        :size="17"
+        :stroke-width="1.9"
+        aria-hidden="true"
       />
-    </div>
-  </div>
+      <ArrowRight v-else :size="17" :stroke-width="1.9" aria-hidden="true" />
+    </button>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { startWindowDrag } from "../services/desktop";
+import { ArrowRight, LoaderCircle, Search } from "@lucide/vue";
+import { onMounted, ref } from "vue";
 
-const props = defineProps<{
+defineProps<{
   modelValue: string;
+  inputType: string;
+  loading: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: "update:modelValue", value: string): void;
-  (e: "search"): void;
-  (e: "escape"): void;
+  (event: "update:modelValue", value: string): void;
+  (event: "search"): void;
+  (event: "escape"): void;
 }>();
 
 const inputRef = ref<HTMLInputElement | null>(null);
-
-function handleEsc() {
-  emit("escape");
-}
-
-function startDrag() {
-  startWindowDrag().catch((error) => {
-    console.warn("Failed to start window drag:", error);
-  });
-}
 
 onMounted(() => {
   inputRef.value?.focus();
@@ -57,39 +61,86 @@ defineExpose({
 </script>
 
 <style scoped>
-.search-section {
-  position: relative;
-  width: 100%;
-  background: transparent;
-}
-
-.drag-bar {
-  height: 24px;
-  width: 100%;
-  -webkit-app-region: drag; /* This makes it draggable */
-  cursor: grab;
-}
-
-.drag-bar:active {
-  cursor: grabbing;
-}
-
-.input-wrapper {
-  padding: 0 24px 20px 24px;
+.search-form {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto 32px;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-subtle);
+  background: var(--surface-bg);
 }
 
 .search-input {
-  width: 100%;
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--text-main);
+  min-width: 0;
+  border: 0;
+  outline: 0;
   background: transparent;
-  border: none;
-  outline: none;
-  -webkit-app-region: no-drag; /* Input must be non-draggable to be clickable */
+  color: var(--text-main);
+  font-size: 17px;
+  font-weight: 450;
+  line-height: 1.4;
 }
 
 .search-input::placeholder {
   color: var(--text-subtle);
+}
+
+.input-type {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.input-type.invisible {
+  visibility: hidden;
+}
+
+.submit-button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--text-main);
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.submit-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.submit-button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.spin {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

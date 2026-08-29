@@ -4,7 +4,7 @@ This document covers how to set up, test, package, and release any2bibtex.
 
 ## Prerequisites
 
-- **Node.js** 20+ ([download](https://nodejs.org/))
+- **Node.js** 22+ ([download](https://nodejs.org/))
 - **Rust** stable ([rustup](https://rustup.rs/))
 - **Platform build dependencies** for Tauri 2
 
@@ -80,9 +80,12 @@ Semantic Scholar API keys currently have a limit of `1 request/second`, cumulati
 ## Useful Commands
 
 ```bash
-npm run build      # Build the Vue frontend
-cargo check        # Check the Rust backend from src-tauri/
-npm run build:app  # Build the Tauri desktop app
+npm test               # Test release manifest generation
+npm run typecheck      # Check Vue and TypeScript types
+npm run build          # Build the Vue frontend
+npm run release:check  # Verify package, Tauri, and Cargo versions match
+cargo check            # Check the Rust backend from src-tauri/
+npm run build:app      # Build the Tauri desktop app
 npm run build:release  # Build installers plus signed updater artifacts
 ```
 
@@ -94,23 +97,44 @@ source "$HOME/.cargo/env"
 
 ## Packaging
 
-From the project root:
+Local builds use the current machine architecture:
 
 ```bash
 npm run build:app
 ```
 
-Typical outputs:
+The release workflow builds:
 
-- macOS: `src-tauri/target/release/bundle/dmg/*.dmg`
+- macOS: Apple Silicon and Intel `.dmg` files
 - Windows: `src-tauri/target/release/bundle/nsis/*.exe`
-- Linux: `src-tauri/target/release/bundle/appimage/*.AppImage` and `src-tauri/target/release/bundle/deb/*.deb`
+- Linux: x64 and ARM64 `.AppImage` and `.deb` files
+- Updater artifacts and signatures for every supported release architecture
+- `latest.json`, `release-notes.md`, and `SHA256SUMS.txt`
 
-macOS release builds use ad-hoc signing via `bundle.macOS.signingIdentity = "-"`. This keeps downloaded Apple Silicon builds code-signed, but it is not a substitute for Developer ID signing and notarization.
+### Platform signing
+
+macOS CI uses Developer ID signing when these repository secrets are set:
+
+- `APPLE_CERTIFICATE`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_SIGNING_IDENTITY`
+
+Notarization can use either App Store Connect secrets (`APPLE_API_ISSUER`, `APPLE_API_KEY`, `APPLE_API_KEY_PRIVATE_KEY`) or Apple ID secrets (`APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`). Without a Developer ID certificate, CI falls back to ad-hoc signing and prints a warning.
+
+Windows CI supports Azure Artifact Signing with:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_CLIENT_SECRET`
+- `AZURE_TENANT_ID`
+- `AZURE_SIGNING_ENDPOINT`
+- `AZURE_SIGNING_ACCOUNT`
+- `AZURE_SIGNING_PROFILE`
+
+All six Azure secrets must be set together. Without them, CI produces an unsigned Windows installer and prints a warning. Linux updater artifacts are signed by the Tauri updater key and all release downloads are covered by `SHA256SUMS.txt`.
 
 ## Automatic Updates
 
-any2bibtex uses the Tauri updater plugin. Release builds publish `latest.json` plus signed updater artifacts to GitHub Releases.
+any2bibtex checks for updates shortly after launch. Available releases open the in-app update view, which reports byte and percentage progress, prompts for restart, and confirms the installed version after relaunch.
 
 Updater signing uses a long-lived key pair:
 
@@ -132,21 +156,17 @@ cat ~/.tauri/any2bibtex.key
 
 The normal local package command remains `npm run build:app`. Use `npm run build:release` only when `TAURI_SIGNING_PRIVATE_KEY` is configured, because updater artifacts cannot be generated without the private signing key.
 
-On macOS, if the final DMG script fails in a sandboxed terminal but `.app` is generated, rerun the generated script locally:
-
-```bash
-cd src-tauri/target/release/bundle/dmg
-./bundle_dmg.sh any2bibtex_0.0.6_aarch64.dmg ../macos/any2bibtex.app
-```
-
 ## Shortcuts
 
 | Shortcut                    | Action        |
 | --------------------------- | ------------- |
 | `Option+Space` (macOS)      | Toggle window |
 | `Alt+Space` (Windows/Linux) | Toggle window |
+| `Command+,` (macOS)         | Open settings |
 | `Enter`                     | Search        |
 | `Escape`                    | Hide window   |
+
+The tray menu provides `Open any2bibtex`, `Hide Window`, `Settings`, `Check for Updates`, `Launch at Login`, appearance controls, repository and About links, and `Quit`.
 
 ## Manual Checks
 
@@ -159,7 +179,9 @@ Recommended smoke tests before packaging:
 - Copy BibTeX.
 - Configure and remove a Semantic Scholar API key.
 - Toggle dark/light mode from both the in-app button and tray menu.
-- Verify tray actions: `Show`, `Hide`, `Dark Mode`, `Light Mode`, `Quit`.
+- Open the update view and verify the latest-version state.
+- Test an older signed build against a newer draft release before publishing.
+- Verify the app menu and tray actions, including updates and launch at login.
 - Verify the macOS transparent window has no white background outside the rounded app container.
 
 ## Release Process
@@ -169,31 +191,33 @@ This repository publishes GitHub Releases from version tags that match `v*`.
 Before creating a release:
 
 1. Ensure `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, and `CHANGELOG.md` are up to date.
-2. Run `npm run build`.
-3. Run `cd src-tauri && cargo check`.
+2. Run `npm test && npm run build && npm run release:check`.
+3. Run `cd src-tauri && cargo check --locked`.
 4. Ensure the GitHub repository secret `TAURI_SIGNING_PRIVATE_KEY` is configured.
-5. Run `npm run build:app` on at least one local platform.
+5. Configure the Apple and Azure signing secrets when signed public installers are required.
+6. Run `npm run build:app` on at least one local platform.
 
 Create and push a release tag:
 
 ```bash
 git pull origin main
-git tag v0.0.6
+git tag v0.0.7
 git push origin main
-git push origin v0.0.6
+git push origin v0.0.7
 ```
 
 After pushing the tag:
 
 1. Open the GitHub `Actions` page.
-2. Wait for `Build any2bibtex` to finish on Windows, macOS, and Linux.
-3. Open the GitHub `Releases` page and verify the new release artifacts were attached successfully.
+2. Wait for `Release any2bibtex` to finish on Windows, macOS, and Linux.
+3. Verify both macOS architectures, both Linux architectures, the Windows installer, `latest.json`, and `SHA256SUMS.txt`.
+4. Verify the installed app reports the new version after an in-app update and restart.
 
 If the tag already exists and you intentionally want to retarget it:
 
 ```bash
-git tag -d v0.0.6
-git push origin :refs/tags/v0.0.6
-git tag v0.0.6
-git push origin v0.0.6
+git tag -d v0.0.7
+git push origin :refs/tags/v0.0.7
+git tag v0.0.7
+git push origin v0.0.7
 ```

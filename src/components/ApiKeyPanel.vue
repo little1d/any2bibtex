@@ -1,90 +1,109 @@
 <template>
-  <div class="settings-backdrop" @click.self="emit('close')">
-    <div class="settings-panel">
-      <div class="settings-panel-header">
-        <div>
-          <div class="settings-title">Semantic Scholar API Key</div>
-          <div class="settings-copy">
-            Title search works without a key, but anonymous requests use shared rate limits.
-            Adding your own key makes title search more reliable.
-          </div>
-        </div>
+  <section class="panel-view">
+    <header class="panel-header">
+      <button class="icon-button" type="button" aria-label="Back" title="Back" @click="emit('close')">
+        <ArrowLeft :size="18" :stroke-width="1.8" aria-hidden="true" />
+      </button>
+      <div class="panel-heading">
+        <KeyRound :size="17" :stroke-width="1.8" aria-hidden="true" />
+        <h2>Semantic Scholar</h2>
       </div>
+      <span class="key-status" :data-active="apiKeyConfigured">
+        <span class="status-dot"></span>
+        {{ apiKeyConfigured ? "Connected" : "Optional" }}
+      </span>
+    </header>
 
-      <div class="settings-badge-row">
-        <span class="settings-badge">{{ apiKeyConfigured ? "Configured" : "Optional" }}</span>
-        <span class="settings-badge settings-badge-muted">Limit: 1 request/second</span>
-      </div>
-
-      <div v-if="apiKeyConfigured" class="configured-box">
-        <div>
-          <div class="configured-title">API key is active</div>
-          <div class="configured-copy">
-            Title search will use your local Semantic Scholar API key.
-          </div>
+    <div class="panel-body">
+      <div v-if="apiKeyConfigured" class="configured-row">
+        <div class="configured-icon">
+          <Check :size="17" :stroke-width="2" aria-hidden="true" />
         </div>
-        <button class="danger-inline-btn" @click="showRevokeConfirm = true">
-          Remove
+        <div class="configured-copy">
+          <strong>API key saved</strong>
+          <span>Title searches use your private rate limit.</span>
+        </div>
+        <button
+          class="danger-icon-button"
+          type="button"
+          aria-label="Remove API key"
+          title="Remove API key"
+          @click="showRevokeConfirm = true"
+        >
+          <Trash2 :size="16" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
 
-      <template v-else>
+      <form v-else class="key-form" @submit.prevent="saveApiKey">
+        <label for="semantic-scholar-key">API key</label>
         <input
+          id="semantic-scholar-key"
           v-model="apiKeyDraft"
           type="password"
           class="settings-input"
-          placeholder="Paste API key"
+          placeholder="Paste key"
+          autocomplete="off"
+          spellcheck="false"
+          autofocus
         />
+        <p v-if="panelError" class="panel-error">{{ panelError }}</p>
+      </form>
 
-        <div class="settings-help">
-          Your key is stored locally on this machine and used by the Rust resolver.
-          If you leave this blank, title search still works with shared anonymous limits.
-        </div>
-      </template>
-
-      <div class="settings-links">
-        <button class="settings-link" @click="openApiKeyDocs">
-          Apply for an API key
-        </button>
-      </div>
-
-      <div class="settings-actions">
-        <button class="secondary-btn" @click="emit('close')">
-          {{ apiKeyConfigured ? "Close" : "Cancel" }}
-        </button>
-        <button
-          v-if="!apiKeyConfigured"
-          class="primary-btn"
-          :disabled="savingApiKey"
-          @click="saveApiKey"
-        >
-          {{ savingApiKey ? "Saving..." : "Save" }}
-        </button>
-      </div>
-
-      <div
-        v-if="showRevokeConfirm"
-        class="confirm-backdrop"
-        @click.self="showRevokeConfirm = false"
-      >
-        <div class="confirm-dialog">
-          <div class="confirm-title">Remove API key?</div>
-          <div class="confirm-copy">
-            Title search will continue with shared anonymous Semantic Scholar limits.
-          </div>
-          <div class="confirm-actions">
-            <button class="secondary-btn" @click="showRevokeConfirm = false">Cancel</button>
-            <button class="danger-btn" :disabled="savingApiKey" @click="removeApiKey">
-              {{ savingApiKey ? "Removing..." : "Remove key" }}
-            </button>
-          </div>
+      <div v-if="showRevokeConfirm" class="confirm-row">
+        <span>Remove the saved API key?</span>
+        <div class="confirm-actions">
+          <button class="button secondary" type="button" @click="showRevokeConfirm = false">
+            Cancel
+          </button>
+          <button class="button danger" type="button" :disabled="savingApiKey" @click="removeApiKey">
+            <LoaderCircle
+              v-if="savingApiKey"
+              class="spin"
+              :size="14"
+              :stroke-width="1.9"
+              aria-hidden="true"
+            />
+            Remove
+          </button>
         </div>
       </div>
+
+      <button class="external-link" type="button" @click="openApiKeyDocs">
+        Get an API key
+        <ExternalLink :size="13" :stroke-width="1.8" aria-hidden="true" />
+      </button>
     </div>
-  </div>
+
+    <footer v-if="!apiKeyConfigured" class="panel-actions">
+      <button class="button secondary" type="button" @click="emit('close')">Cancel</button>
+      <button
+        class="button primary"
+        type="button"
+        :disabled="savingApiKey || !apiKeyDraft.trim()"
+        @click="saveApiKey"
+      >
+        <LoaderCircle
+          v-if="savingApiKey"
+          class="spin"
+          :size="14"
+          :stroke-width="1.9"
+          aria-hidden="true"
+        />
+        Save key
+      </button>
+    </footer>
+  </section>
 </template>
 
 <script setup lang="ts">
+import {
+  ArrowLeft,
+  Check,
+  ExternalLink,
+  KeyRound,
+  LoaderCircle,
+  Trash2,
+} from "@lucide/vue";
 import { ref } from "vue";
 import { openExternalUrl, saveSemanticScholarConfig } from "../services/desktop";
 
@@ -95,26 +114,29 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "saved", hasApiKey: boolean): void;
-  (e: "error", message: string): void;
+  (event: "close"): void;
+  (event: "saved", hasApiKey: boolean): void;
+  (event: "error", message: string): void;
 }>();
 
 const apiKeyDraft = ref("");
 const savingApiKey = ref(false);
 const showRevokeConfirm = ref(false);
+const panelError = ref("");
 
 async function saveApiKey() {
-  if (savingApiKey.value) return;
+  if (savingApiKey.value || !apiKeyDraft.value.trim()) return;
   savingApiKey.value = true;
+  panelError.value = "";
 
   try {
     const result = await saveSemanticScholarConfig(apiKeyDraft.value);
     emit("saved", Boolean(result?.hasApiKey));
     emit("close");
-  } catch (err) {
-    console.error("Failed to save Semantic Scholar API key:", err);
-    emit("error", "Failed to save Semantic Scholar API key.");
+  } catch (error) {
+    console.error("Failed to save Semantic Scholar API key:", error);
+    panelError.value = "The API key could not be saved.";
+    emit("error", panelError.value);
   } finally {
     savingApiKey.value = false;
   }
@@ -123,15 +145,17 @@ async function saveApiKey() {
 async function removeApiKey() {
   if (savingApiKey.value) return;
   savingApiKey.value = true;
+  panelError.value = "";
 
   try {
     const result = await saveSemanticScholarConfig("");
     emit("saved", Boolean(result?.hasApiKey));
     showRevokeConfirm.value = false;
     emit("close");
-  } catch (err) {
-    console.error("Failed to remove Semantic Scholar API key:", err);
-    emit("error", "Failed to remove Semantic Scholar API key.");
+  } catch (error) {
+    console.error("Failed to remove Semantic Scholar API key:", error);
+    panelError.value = "The API key could not be removed.";
+    emit("error", panelError.value);
   } finally {
     savingApiKey.value = false;
   }
@@ -140,311 +164,274 @@ async function removeApiKey() {
 async function openApiKeyDocs() {
   try {
     await openExternalUrl(API_KEY_DOCS_URL);
-  } catch (err) {
-    console.error("Failed to open Semantic Scholar API key docs:", err);
+  } catch (error) {
+    console.error("Failed to open Semantic Scholar API key docs:", error);
+    panelError.value = "The link could not be opened.";
   }
 }
 </script>
 
 <style scoped>
-.settings-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
+.panel-view {
   display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  color: var(--text-main);
+}
+
+.panel-header {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  min-height: 52px;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: transparent;
-}
-
-.settings-panel {
-  position: relative;
-  width: min(520px, calc(100vw - 40px));
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--border-soft);
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-soft);
   background: var(--surface-bg);
-  padding: 18px 20px 20px;
-  color: var(--text-main);
 }
 
-.settings-panel-header {
+.panel-heading {
   display: flex;
-  align-items: flex-start;
-}
-
-.settings-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.settings-copy {
-  margin-top: 6px;
-  max-width: 520px;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--text-muted);
-}
-
-.settings-badge-row {
-  display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
   gap: 8px;
-  margin-top: 10px;
 }
 
-.settings-badge {
+h2 {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-button,
+.danger-icon-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--surface-raised);
+  color: var(--text-main);
+}
+
+.key-status {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  gap: 6px;
+  color: var(--text-subtle);
+  font-size: 10px;
+  font-weight: 600;
 }
 
-.settings-badge-muted {
-  background: var(--control-bg);
-  color: var(--text-muted);
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-subtle);
 }
 
-.configured-box {
-  display: flex;
+.key-status[data-active="true"] {
+  color: var(--success);
+}
+
+.key-status[data-active="true"] .status-dot {
+  background: var(--success);
+}
+
+.panel-body {
+  min-height: 0;
+  flex: 1;
+  padding: 24px;
+}
+
+.configured-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 32px;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 12px;
   padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--success-border);
-  background: var(--success-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-bg);
 }
 
-.configured-title {
-  color: var(--success-text);
-  font-size: 13px;
-  font-weight: 700;
+.configured-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
 }
 
 .configured-copy {
-  margin-top: 4px;
-  color: var(--success-muted);
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.configured-copy strong {
   font-size: 12px;
-  line-height: 1.45;
+  font-weight: 650;
+}
+
+.configured-copy span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.danger-icon-button:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.key-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .settings-input {
   width: 100%;
-  margin-top: 14px;
-  padding: 11px 13px;
-  border-radius: 10px;
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  background: rgba(15, 23, 42, 0.74);
-  color: #f8fafc;
-  font-size: 14px;
-  outline: none;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface-bg);
+  color: var(--text-main);
+  font-size: 13px;
 }
 
 .settings-input:focus {
-  border-color: rgba(96, 165, 250, 0.75);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.settings-help {
-  margin-top: 8px;
+.panel-error {
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--border-soft));
+  border-radius: 7px;
+  background: var(--danger-soft);
+  color: var(--text-main);
   font-size: 12px;
-  line-height: 1.5;
+}
+
+.confirm-actions,
+.panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.external-link:hover {
+  color: var(--accent-strong);
+}
+
+.panel-actions {
+  min-height: 52px;
+  padding: 0 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-bg);
+}
+
+.button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.button.primary {
+  background: var(--accent-strong);
+  color: #ffffff;
+}
+
+.button.secondary {
+  border-color: var(--border-soft);
+  background: var(--surface-raised);
   color: var(--text-muted);
 }
 
-.settings-links {
-  margin-top: 10px;
+.button.danger {
+  background: var(--danger);
+  color: #ffffff;
 }
 
-.settings-link {
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.settings-link:hover {
-  color: var(--accent);
-  text-decoration: underline;
-}
-
-.settings-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.primary-btn,
-.secondary-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    box-shadow 0.16s ease,
-    transform 0.16s ease,
-    filter 0.16s ease,
-    background-color 0.16s ease;
-}
-
-.primary-btn:disabled,
-.secondary-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.primary-btn {
-  color: #eff6ff;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-}
-
-.secondary-btn {
-  color: var(--text-main);
-  background: var(--control-bg);
-}
-
-.primary-btn:hover:not(:disabled),
-.secondary-btn:hover:not(:disabled) {
-  box-shadow: 0 10px 24px var(--accent-soft);
-  transform: translateY(-1px);
-}
-
-.primary-btn:hover:not(:disabled) {
-  filter: brightness(1.06) saturate(1.08);
-}
-
-.primary-btn:active:not(:disabled),
-.secondary-btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-
-.danger-inline-btn {
-  flex-shrink: 0;
-  border: 1px solid var(--danger-border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  color: var(--danger-text);
-  background: var(--danger-soft);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    box-shadow 0.16s ease,
-    transform 0.16s ease,
-    filter 0.16s ease;
-}
-
-.danger-inline-btn:hover {
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--danger-text) 18%, transparent);
-  filter: brightness(1.04);
-  transform: translateY(-1px);
-}
-
-.danger-inline-btn:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.confirm-backdrop {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-  background: rgba(2, 6, 23, 0.62);
-}
-
-.confirm-dialog {
-  width: min(360px, 100%);
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: #0f172a;
-  padding: 16px;
-}
-
-.confirm-title {
-  color: #f8fafc;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.confirm-copy {
-  margin-top: 8px;
-  color: rgba(203, 213, 225, 0.78);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.danger-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #fee2e2;
-  background: #b91c1c;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    box-shadow 0.16s ease,
-    transform 0.16s ease,
-    filter 0.16s ease;
-}
-
-.danger-btn:hover:not(:disabled) {
-  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.24);
+.button:hover:not(:disabled) {
   filter: brightness(1.05);
-  transform: translateY(-1px);
 }
 
-.danger-btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
-.danger-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
+.button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
-:global(:root) {
-  --success-bg: rgba(20, 83, 45, 0.18);
-  --success-border: rgba(34, 197, 94, 0.18);
-  --success-text: #bbf7d0;
-  --success-muted: rgba(220, 252, 231, 0.68);
-  --danger-soft: rgba(127, 29, 29, 0.32);
-  --danger-border: rgba(248, 113, 113, 0.24);
-  --danger-text: #fecaca;
+.spin {
+  animation: spin 800ms linear infinite;
 }
 
-:global(:root[data-theme="light"]) {
-  --success-bg: #ecfdf5;
-  --success-border: #86efac;
-  --success-text: #047857;
-  --success-muted: #166534;
-  --danger-soft: #fee2e2;
-  --danger-border: #fca5a5;
-  --danger-text: #b91c1c;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
