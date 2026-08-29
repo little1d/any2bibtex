@@ -234,16 +234,27 @@ jobs:
       - name: Build macOS bundle
         shell: bash
         run: |
-          if ! npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg; then
-            if [[ "$APPLE_SIGNING_IDENTITY" == "-" ]]; then
-              exit 1
-            fi
+          build_ad_hoc() {
+            env \
+              -u APPLE_CERTIFICATE \
+              -u APPLE_CERTIFICATE_PASSWORD \
+              -u APPLE_ID \
+              -u APPLE_PASSWORD \
+              -u APPLE_TEAM_ID \
+              -u APPLE_API_ISSUER \
+              -u APPLE_API_KEY \
+              -u APPLE_API_KEY_PRIVATE_KEY \
+              -u APPLE_API_KEY_PATH \
+              APPLE_SIGNING_IDENTITY=- \
+              npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg
+          }
+
+          if [[ "$APPLE_SIGNING_IDENTITY" == "-" ]]; then
+            build_ad_hoc
+          elif ! npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg; then
 
             echo "::warning::Apple signing failed; retrying with ad-hoc signing."
-            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
-            unset APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PRIVATE_KEY APPLE_API_KEY_PATH
-            export APPLE_SIGNING_IDENTITY="-"
-            npm run build:release -- --target ${{ matrix.target }} --bundles app,dmg
+            build_ad_hoc
           fi
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
