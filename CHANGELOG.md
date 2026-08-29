@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-29
+
 ### Added
 
 - **Automatic Update Checks** - Added a silent launch-time update check with an in-app availability indicator.

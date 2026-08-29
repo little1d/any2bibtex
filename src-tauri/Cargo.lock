@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "any2bibtex"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "arboard",
  "dirs 6.0.0",
